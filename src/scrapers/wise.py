@@ -16,7 +16,7 @@ class Wise(BaseScraper):
         page = 1
         while True:
             print(f"Page ==> {page}")
-            html = self.get_html(f"{self.link}?page={page}&size=5")
+            html = self.get_html(f"{self.link}?page={page}&size=48")
             soup = HTMLParser(html)
 
             positions = soup.css("div.attrax-vacancy-tile")
@@ -34,7 +34,6 @@ class Wise(BaseScraper):
                 position_links.append(position_link)
             
             page += 1
-            break
         return position_links
 
 
@@ -55,7 +54,7 @@ class Wise(BaseScraper):
         job_salary = job_salary.text(strip=True) if job_salary else ""
 
         job_dict = {
-            "jobid": int(datetime.now().timestamp()) + self.companyid,
+            "jobid": int(datetime.now().timestamp()),
             "jobposition": jobposition,
             "jobdescription": job_description,
             "jobsalary": job_salary,
@@ -63,7 +62,6 @@ class Wise(BaseScraper):
             "jobcountry": country,
             "scrapedsource": position_link
         }
-        print(job_dict['jobid'])
         return job_dict
 
 
