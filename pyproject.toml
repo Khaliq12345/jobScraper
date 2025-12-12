@@ -7,5 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "httpx>=0.28.1",
     "pydantic>=2.12.5",
+    "pymysql>=1.1.2",
     "selectolax>=0.4.6",
+    "sqlmodel>=0.0.27",
 ]

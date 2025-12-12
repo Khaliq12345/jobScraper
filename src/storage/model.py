@@ -1,8 +1,8 @@
-from pydantic import BaseModel
+from sqlmodel import Field, SQLModel
 
 
-class Scraper(BaseModel):
-    jobid: int
+class jobs(SQLModel, table=True):
+    jobid:  int = Field(primary_key=True)
     jobposition: str = ""
     jobdescription: str = ""
     jobqualifications: str = ""
@@ -12,7 +12,7 @@ class Scraper(BaseModel):
     jobniche: str = ""
     jobcountry: str = ""
     jobaddress: str = ""
-    jobstatus: str = "scraped"
-    scrapedsource: str
-    editpin: str = "end"
-    jobscraper: str = "Loicx"
+    jobstatus: str =  ""
+    scrapedsource: str = ""
+    editpin: str = ""
+    jobscraper: str = ""
