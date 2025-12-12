@@ -1,18 +1,16 @@
-from datetime import datetime
-from urllib.parse import urljoin
+from abc import abstractmethod
 import httpx
-from selectolax.parser import HTMLParser
 from src.storage.database import Database
 from src.storage.model import jobs
 
 
 class BaseScraper(Database):
-    def __init__(self, name: str, link: str, positions_selector: str, domain: str = "") -> None:
+    def __init__(self, name: str, link: str,  companyid: int, domain: str = "") -> None:
         super().__init__()
         self.name = name
         self.link = link
-        self.positions_selector = positions_selector
         self.domain = domain
+        self.companyid = companyid
         self.create_db_and_tables()
 
 
@@ -33,54 +31,16 @@ class BaseScraper(Database):
         return scraped_job
     
 
+    @abstractmethod
     def get_positions(self) -> list[str]:
         """Extract the position links"""
-        position_links = []
+        pass
 
-        html = self.get_html(self.link)
-        soup = HTMLParser(html)
-
-        positions = soup.css(self.positions_selector)
-        print(f"ALL JOBS - {len(positions)}")
-
-        for position in positions:
-            position_link = position.css_first("a")
-            if not position_link:
-                continue
-            position_link = position_link.attributes.get("href")
-            position_link = urljoin(self.domain, position_link) if self.domain else position_link
-            position_links.append(position_link)
-        return position_links
-
+    @abstractmethod
     def get_position_details(self, position_link: str) -> dict:
         """Extract position details"""
         print(f"POSITION - {position_link}")
-        html = self.get_html(position_link)
-
-        soup = HTMLParser(html)
-        jobposition = soup.css_first('span[class="header__text"]')
-        jobposition = jobposition.text(strip=True) if jobposition else ""
-        category = soup.css_first('li[class="Team-wrapper"]')
-        category = category.text(strip=True).replace("__vacancyopjusttionswidget.opt-Team__", "") if category else ""
-        country = soup.css_first('li[class="Locations-wrapper"]')
-        country = country.text(strip=True).replace('__vacancyopjusttionswidget.opt-Locations__', "") if country else ""
-        job_info = soup.css_first('div[aria-label="Job description"]')
-        job_info = job_info.text(strip=True, separator=" ") if job_info else ""
-        job_description = job_info.split("Job Description")[1]
-        job_salary = soup.css_first('div[data-type="SalaryWidget"]')
-        job_salary = job_salary.text(strip=True) if job_salary else ""
-
-        job_dict = {
-            "jobid": int(datetime.now().timestamp()),
-            "jobposition": jobposition,
-            "jobdescription": job_description,
-            "jobsalary": job_salary,
-            "jobniche": category,
-            "jobcountry": country,
-            "scrapedsource": position_link
-        }
-        return job_dict
-
+        pass
 
 
     def main(self) -> None:
@@ -93,4 +53,4 @@ class BaseScraper(Database):
             parsed_position = self.validate_data(job_details)
             parsed_positions.append(parsed_position)
 
-        self.send_jobs(parsed_positions) 
+        # self.send_jobs(parsed_positions) 

@@ -7,12 +7,12 @@ class jobs(SQLModel, table=True):
     jobdescription: str = ""
     jobqualifications: str = ""
     jobexperience: str = ""
-    jobpattern: str = ""
+    jobpattern: str = "" #job type
     jobsalary: str = ""
     jobniche: str = ""
     jobcountry: str = ""
     jobaddress: str = ""
-    jobstatus: str =  ""
-    scrapedsource: str = ""
-    editpin: str = ""
-    jobscraper: str = ""
+    jobstatus: str = "scraped"
+    scrapedsource: str
+    editpin: str = "end"
+    jobscraper: str = "Loicx"

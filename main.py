@@ -1,8 +1,8 @@
-from src.scrapers.base.base_scraper import BaseScraper
+from src.scrapers.wise import Wise
 
 
 if __name__ == "__main__":
     # db = Database()
     # db.get_jobs()
-    scraper = BaseScraper(name="Wise", link="https://wise.jobs/jobs", positions_selector="div.attrax-vacancy-tile", domain="https://wise.jobs")
+    scraper = Wise()
     scraper.main()
