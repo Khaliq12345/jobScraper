@@ -1,14 +1,19 @@
-from src.scrapers.base.base_scraper import BaseScraper
-from selectolax.parser import HTMLParser
-from urllib.parse import urljoin
 from datetime import datetime
+from urllib.parse import urljoin
+
+from selectolax.parser import HTMLParser
+
+from src.scrapers.base.base_scraper import BaseScraper
 
 
 class Wise(BaseScraper):
     def __init__(self) -> None:
-        super().__init__(name="Wise", link="https://wise.jobs/jobs", domain="https://wise.jobs", companyid=10)
-
-
+        super().__init__(
+            name="Wise",
+            link="https://wise.jobs/jobs",
+            domain="https://wise.jobs",
+            companyid=10,
+        )
 
     def get_positions(self) -> list[str]:
         position_links = []
@@ -30,12 +35,15 @@ class Wise(BaseScraper):
                 if not position_link:
                     continue
                 position_link = position_link.attributes.get("href")
-                position_link = urljoin(self.domain, position_link) if self.domain else position_link
+                position_link = (
+                    urljoin(self.domain, position_link)
+                    if self.domain
+                    else position_link
+                )
                 position_links.append(position_link)
-            
+
             page += 1
         return position_links
-
 
     def get_position_details(self, position_link: str) -> dict:
         html = self.get_html(position_link)
@@ -44,9 +52,21 @@ class Wise(BaseScraper):
         jobposition = soup.css_first('span[class="header__text"]')
         jobposition = jobposition.text(strip=True) if jobposition else ""
         category = soup.css_first('li[class="Team-wrapper"]')
-        category = category.text(strip=True).replace("__vacancyopjusttionswidget.opt-Team__", "") if category else ""
+        category = (
+            category.text(strip=True).replace(
+                "__vacancyopjusttionswidget.opt-Team__", ""
+            )
+            if category
+            else ""
+        )
         country = soup.css_first('li[class="Locations-wrapper"]')
-        country = country.text(strip=True).replace('__vacancyopjusttionswidget.opt-Locations__', "") if country else ""
+        country = (
+            country.text(strip=True).replace(
+                "__vacancyopjusttionswidget.opt-Locations__", ""
+            )
+            if country
+            else ""
+        )
         job_info = soup.css_first('div[aria-label="Job description"]')
         job_info = job_info.text(strip=True, separator=" ") if job_info else ""
         job_description = job_info.split("Job Description")[1]
@@ -60,9 +80,6 @@ class Wise(BaseScraper):
             "jobsalary": job_salary,
             "jobniche": category,
             "jobcountry": country,
-            "scrapedsource": position_link
+            "scrapedsource": position_link,
         }
         return job_dict
-
-
-
