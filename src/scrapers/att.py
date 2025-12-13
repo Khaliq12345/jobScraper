@@ -121,24 +121,3 @@ class ATT(BaseScraper):
         }
         return job_dict
 
-
-if __name__ == "__main__":
-    scraper = ATT()
-    positions = scraper.get_positions()
-    print(f"\nNombre de positions trouvées: {len(positions)}")
-
-    if positions:
-        for i, position_link in enumerate(positions, 1):
-            print(f"\n{'='*70}")
-            print(f"JOB {i}/{len(positions)}: {position_link}")
-            print("="*70)
-            job_dict = scraper.get_position_details(position_link)
-            for key, value in job_dict.items():
-                if isinstance(value, str) and len(value) > 500:
-                    print(f"{key}:")
-                    print(value+"\n_______________________________")
-                    print()
-                else:
-                    print(f"{key}: {value}")
-            print("="*70)
-
