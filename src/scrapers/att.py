@@ -20,7 +20,7 @@ class ATT(BaseScraper):
 
         page = 1
         while True:
-            url = f"{self.link}" if page == 1 else f"{self.link}?page={page}"
+            url = f"{self.link}" if page == 1 else f"{self.link}?p={page}"
             html = self.get_html(url)
             soup = HTMLParser(html)
 
@@ -30,12 +30,20 @@ class ATT(BaseScraper):
             if len(job_links) == 0:
                 break
 
+            new_links_count = 0
             for link in job_links:
                 href = link.attributes.get("href", "")
                 if href and href.startswith("/job/"):
                     position_link = urljoin(self.domain, href)
                     if position_link not in position_links:
                         position_links.append(position_link)
+                        new_links_count += 1
+            
+            print(f"Page {page}: found {len(job_links)} links, {new_links_count} new. Total: {len(position_links)}")
+
+            if new_links_count == 0:
+                print("No new links found on this page. Ending pagination.")
+                break
 
             page += 1
 
@@ -122,23 +130,23 @@ class ATT(BaseScraper):
         return job_dict
 
 
-if __name__ == "__main__":
-    scraper = ATT()
-    positions = scraper.get_positions()
-    print(f"\nNombre de positions trouvées: {len(positions)}")
+# if __name__ == "__main__":
+#     scraper = ATT()
+#     positions = scraper.get_positions()
+#     print(f"\nNombre de positions trouvées: {len(positions)}")
 
-    if positions:
-        for i, position_link in enumerate(positions, 1):
-            print(f"\n{'='*70}")
-            print(f"JOB {i}/{len(positions)}: {position_link}")
-            print("="*70)
-            job_dict = scraper.get_position_details(position_link)
-            for key, value in job_dict.items():
-                if isinstance(value, str) and len(value) > 500:
-                    print(f"{key}:")
-                    print(value+"\n_______________________________")
-                    print()
-                else:
-                    print(f"{key}: {value}")
-            print("="*70)
+#     all_jobs = []
+#     if positions:
+#         for i, position_link in enumerate(positions, 1):
+#             print(f"Scraping [{i}/{len(positions)}]: {position_link}")
+#             try:
+#                 job_dict = scraper.get_position_details(position_link)
+#                 all_jobs.append(job_dict)
+#             except Exception as e:
+#                 print(f"Error scraping {position_link}: {e}")
+
+#     with open('att_jobs.json', 'w', encoding='utf-8') as f:
+#         json.dump(all_jobs, f, indent=4, ensure_ascii=False)
+    
+#     print(f"\nScraping complete. Saved {len(all_jobs)} jobs to 'att_jobs.json'.")
 
