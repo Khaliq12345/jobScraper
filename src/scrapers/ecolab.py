@@ -120,7 +120,7 @@ class Ecolab(BaseScraper):
         if not jobposition and json_data:
             jobposition = json_data.get("title", "")
 
-        # Location - on construit depuis le JSON-LD qui a les infos détaillées
+        # Location 
         joblocation = ""
         
         if json_data:
@@ -150,7 +150,7 @@ class Ecolab(BaseScraper):
                     else:
                         joblocation = location_part.strip()
         
-        # Description et qualifications - tout est dans le JSON-LD
+        # Description et qualifications
         jobdescription = ""
         jobqualifications = ""
         
