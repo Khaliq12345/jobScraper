@@ -4,7 +4,6 @@ from urllib.parse import urljoin
 from datetime import datetime
 import re
 import cloudscraper
-from bs4 import BeautifulSoup
 
 
 class Verizon(BaseScraper):
@@ -34,181 +33,89 @@ class Verizon(BaseScraper):
         response.raise_for_status()
         return response.text
 
-    def get_positions(self) -> list[str]:
+    def get_positions(self, limit: int = None) -> list[str]:
         position_links = []
-
         page = 1
+        
         while True:
             url = f"{self.link}" if page == 1 else f"{self.link}?page={page}#results"
-            html = self.get_html(url)
+            print(f"Page ==> {page}")
+            try:
+                html = self.get_html(url)
+            except Exception as e:
+                print(f"Error getting page {page}: {e} -> Stopping pagination.")
+                break
             soup = HTMLParser(html)
 
             job_cards = soup.css("div.card.card-job")
-            if len(job_cards) == 0:
+            if not job_cards:
+                print("NO MORE NEW PAGE")
                 break
 
             for card in job_cards:
                 job_link = card.css_first("a.stretched-link.js-view-job")
                 if not job_link:
                     continue
+                
                 href = job_link.attributes.get("href", "")
                 if href:
                     position_link = urljoin(self.domain, href) if self.domain else href
                     if position_link not in position_links:
                         position_links.append(position_link)
 
+            if limit and page >= limit:
+                print(f"Reached limit of {limit} pages")
+                break
             page += 1
 
         return position_links
 
     def get_position_details(self, position_link: str) -> dict:
         html = self.get_html(position_link)
-        
         soup = HTMLParser(html)
 
-        job_id = ""
+        # Job ID
         job_id_elem = soup.css_first('p.job-meta')
-        if job_id_elem:
-            job_id_text = job_id_elem.text(strip=True)
-            match = re.search(r'Job ID:\s*(R-?\d+)', job_id_text)
-            if match:
-                job_id = match.group(1).replace("R-", "")
+        job_id_text = job_id_elem.text(strip=True) if job_id_elem else ""
+        match = re.search(r'Job ID:\s*(R-?\d+)', job_id_text)
+        job_id = match.group(1).replace("R-", "") if match else ""
 
-        jobposition = ""
+        # Position
         h1_title = soup.css_first("h1")
-        if h1_title:
-            jobposition = h1_title.text(strip=True)
+        jobposition = h1_title.text(strip=True) if h1_title else ""
 
-        jobaddress = ""
-        location_list = soup.css_first("ul.locations")
-        if location_list:
-            location_li = location_list.css_first("li")
-            if location_li:
-                jobaddress = location_li.text(strip=True)
+        # Address & Country
+        location_elem = soup.css_first(".locations")
+        jobaddress = location_elem.text(strip=True) if location_elem else ""
+        jobcountry = jobaddress.split(",")[-1].strip() if jobaddress and "," in jobaddress else ""
 
-        jobcountry = ""
-        if jobaddress:
-            parts = jobaddress.split(",")
-            if len(parts) > 0:
-                jobcountry = parts[-1].strip()
-
-        jobdescription = ""
-        jobqualifications = ""
+        # Description (using .cms-content as requested)
         article = soup.css_first("article.cms-content")
-        if article:
-            article_html = str(article.html)
-            bs_soup = BeautifulSoup(article_html, 'html.parser')
-            
-            doing_h3 = None
-            qual_h3 = None
-            for h3 in bs_soup.find_all('h3'):
-                h3_text = h3.get_text(strip=True)
-                if "you'll be doing" in h3_text.lower() or "you'll be doing" in h3_text.lower():
-                    doing_h3 = h3
-                if "looking for" in h3_text.lower():
-                    qual_h3 = h3
-                    if doing_h3:
-                        break
-            
-            if qual_h3:
-                qual_elements = []
-                current = qual_h3.next_sibling
-                while current:
-                    if current.name == 'h3':
-                        break
-                    if hasattr(current, 'get_text'):
-                        text = current.get_text(strip=True, separator=' ')
-                        if text:
-                            qual_elements.append(text)
-                    current = current.next_sibling
-                
-                if qual_elements:
-                    jobqualifications = "\n".join(qual_elements)
-                    jobqualifications = re.sub(r'\n\s*\n+', '\n\n', jobqualifications).strip()
-            
-            if doing_h3 and qual_h3:
-                desc_elements = []
-                seen_texts = set()
-                for sibling in doing_h3.find_next_siblings():
-                    if sibling == qual_h3:
-                        break
-                    if hasattr(sibling, 'name') and sibling.name == 'h3':
-                        break
-                    if hasattr(sibling, 'get_text'):
-                        text = sibling.get_text(strip=True, separator=' ')
-                        if text and "When you join Verizon" not in text:
-                            if text not in seen_texts:
-                                desc_elements.append(text)
-                                seen_texts.add(text)
-                
-                if desc_elements:
-                    jobdescription = "\n".join(desc_elements)
-                else:
-                    article_text = article.text(strip=True, separator="\n")
-                    parts = article_text.split("What we're looking for")
-                    doing_parts = parts[0].split("What you'll be doing") if "What you'll be doing" in parts[0] else [parts[0]]
-                    if len(doing_parts) > 1:
-                        jobdescription = doing_parts[1].strip()
-                    else:
-                        jobdescription = doing_parts[0].strip()
-            elif doing_h3:
-                desc_elements = []
-                seen_texts = set()
-                for sibling in doing_h3.find_next_siblings():
-                    if hasattr(sibling, 'name') and sibling.name == 'h3':
-                        if "looking for" in sibling.get_text(strip=True).lower():
-                            break
-                        continue
-                    if hasattr(sibling, 'get_text'):
-                        text = sibling.get_text(strip=True, separator=' ')
-                        if text and "When you join Verizon" not in text:
-                            if text not in seen_texts:
-                                desc_elements.append(text)
-                                seen_texts.add(text)
-                
-                if desc_elements:
-                    jobdescription = "\n".join(desc_elements)
-                else:
-                    article_text = article.text(strip=True, separator="\n")
-                    parts = article_text.split("What we're looking for")
-                    doing_parts = parts[0].split("What you'll be doing") if "What you'll be doing" in parts[0] else [parts[0]]
-                    if len(doing_parts) > 1:
-                        jobdescription = doing_parts[1].strip()
-                    else:
-                        jobdescription = doing_parts[0].strip()
-            else:
-                article_text = article.text(strip=True, separator="\n")
-                parts = article_text.split("What we're looking for")
-                doing_parts = parts[0].split("What you'll be doing") if "What you'll be doing" in parts[0] else [parts[0]]
-                if len(doing_parts) > 1:
-                    jobdescription = doing_parts[1].strip()
-                else:
-                    jobdescription = doing_parts[0].strip()
-            
+        jobdescription = article.text(strip=True, separator="\n") if article else ""
+        
+        # Clean up description
+        if jobdescription:
             jobdescription = re.sub(r'\n\s*\n+', '\n\n', jobdescription).strip()
-            # Supprimer le texte constant "When you join Verizon..."
+            # Remove constant footer text
             jobdescription = re.sub(r'When you join Verizon.*?Join the #VTeamLife\.\s*', '', jobdescription, flags=re.DOTALL | re.IGNORECASE)
             jobdescription = re.sub(r'When you join Verizon.*?Want in\? Join the #VTeamLife\.\s*', '', jobdescription, flags=re.DOTALL | re.IGNORECASE)
             jobdescription = re.sub(r'\n\s*\n+', '\n\n', jobdescription).strip()
 
-        jobniche = ""
+        # Niche
         culture_embed = soup.css_first("div.culture-hq-embed")
-        if culture_embed:
-            jobniche = culture_embed.attributes.get("data-careerarea", "")
+        jobniche = culture_embed.attributes.get("data-careerarea", "") if culture_embed else ""
 
+        # Pattern
         jobpattern = ""
-        if article:
-            article_text = article.text(strip=True, separator="\n")
-            if "full-time" in article_text.lower() or "full time" in article_text.lower():
-                jobpattern = "Full time"
-            elif "part-time" in article_text.lower() or "part time" in article_text.lower():
-                jobpattern = "Part time"
+        if "full-time" in jobdescription.lower() or "full time" in jobdescription.lower():
+            jobpattern = "Full time"
+        elif "part-time" in jobdescription.lower() or "part time" in jobdescription.lower():
+            jobpattern = "Part time"
 
         job_dict = {
             "jobid": int(job_id) if job_id and job_id.isdigit() else int(datetime.now().timestamp()),
             "jobposition": jobposition,
             "jobdescription": jobdescription,
-            "jobqualifications": jobqualifications,
             "jobniche": jobniche,
             "jobpattern": jobpattern,
             "jobcountry": jobcountry,
@@ -216,6 +123,31 @@ class Verizon(BaseScraper):
             "scrapedsource": position_link
         }
         return job_dict
+
+
+# if __name__ == "__main__":
+#     import json
+#     verizon = Verizon()
+#     positions = verizon.get_positions()
+#     print(f"Found {len(positions)} positions")
+    
+#     all_details = []
+#     for position in positions: 
+#         print(f"Scraping {position}")
+#         try:
+#             details = verizon.get_position_details(position)
+#             all_details.append(details)
+#             print(f"Scraped job {details.get('jobid')}")
+#         except Exception as e:
+#             print(f"Error scraping {position}: {e}")
+
+#     with open("verizon_results.json", "w", encoding="utf-8") as f:
+#         json.dump(all_details, f, indent=4, ensure_ascii=False)
+    
+#     print(f"Saved {len(all_details)} jobs to verizon_results.json")
+        
+
+
 
 
 
