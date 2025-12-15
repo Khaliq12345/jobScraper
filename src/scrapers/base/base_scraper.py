@@ -27,7 +27,6 @@ class BaseScraper(Database):
     def validate_data(job_details: dict):
         """Validate Scraped job info"""
         scraped_job = jobs(**job_details)
-        print(scraped_job)
         return scraped_job
     
 
@@ -46,11 +45,13 @@ class BaseScraper(Database):
     def main(self) -> None:
         print(self.name)
         positions = self.get_positions()
-        print(positions)
-        parsed_positions = []
         for position in positions:
-            job_details = self.get_position_details(position)
-            parsed_position = self.validate_data(job_details)
-            parsed_positions.append(parsed_position)
+            try:
+                job_details = self.get_position_details(position)
+                parsed_position = self.validate_data(job_details)
+                print(parsed_position)
 
-        # self.send_jobs(parsed_positions) 
+                self.send_job(parsed_position)
+            except Exception as e:
+                print(f"ERROR - {str(e)}")
+
