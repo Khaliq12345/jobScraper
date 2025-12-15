@@ -74,17 +74,13 @@ class Verizon(BaseScraper):
             if match:
                 job_id = match.group(1).replace("R-", "")
 
-        jobposition = ""
         h1_title = soup.css_first("h1")
-        if h1_title:
-            jobposition = h1_title.text(strip=True)
+        jobposition = h1_title.text(strip=True) if h1_title else ""
+        # if h1_title:
+        #     jobposition = h1_title.text(strip=True)
 
-        jobaddress = ""
-        location_list = soup.css_first("ul.locations")
-        if location_list:
-            location_li = location_list.css_first("li")
-            if location_li:
-                jobaddress = location_li.text(strip=True)
+        location_list = soup.css_first("ul.locations li")
+        jobaddress = location_list.text(strip=True) if location_list else ""
 
         jobcountry = ""
         if jobaddress:
@@ -193,8 +189,8 @@ class Verizon(BaseScraper):
 
         jobniche = ""
         culture_embed = soup.css_first("div.culture-hq-embed")
-        if culture_embed:
-            jobniche = culture_embed.attributes.get("data-careerarea", "")
+        culture_embed = culture_embed.attributes.get("data-careerarea", "") if culture_embed else ""
+
 
         jobpattern = ""
         if article:

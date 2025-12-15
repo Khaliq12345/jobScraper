@@ -1,4 +1,4 @@
-from datetime import datetime
+from time import sleep, time
 from urllib.parse import urljoin
 
 from selectolax.parser import HTMLParser
@@ -12,7 +12,7 @@ class Wise(BaseScraper):
             name="Wise",
             link="https://wise.jobs/jobs",
             domain="https://wise.jobs",
-            companyid=10,
+            companyid=18,
         )
 
     def get_positions(self) -> list[str]:
@@ -47,6 +47,7 @@ class Wise(BaseScraper):
 
     def get_position_details(self, position_link: str) -> dict:
         html = self.get_html(position_link)
+        sleep(2)
 
         soup = HTMLParser(html)
         jobposition = soup.css_first('span[class="header__text"]')
@@ -74,7 +75,8 @@ class Wise(BaseScraper):
         job_salary = job_salary.text(strip=True) if job_salary else ""
 
         job_dict = {
-            "jobid": int(datetime.now().timestamp()),
+            "jobid": int(time()),
+            "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": job_description,
             "jobsalary": job_salary,
