@@ -104,51 +104,85 @@ class BankOfAmerica(BaseScraper):
                  else:
                      jobcountry = last_part
         
-        # Niche / Department
-        jobniche = ""
-        niche_elem = soup.css_first('p.item')
-        jobniche = niche_elem.text(strip=True) if niche_elem else ""
+        # Niche / Department (data-jobfamily sur le bloc principal)
+        jobniche = jd_body.attributes.get("data-jobfamily", "") if jd_body else ""
 
-        # Description (All in description, no qualifications splitting)
+        # Description 
         jobdescription = ""
         content_div = soup.css_first('div.job-description-body__internal')
         if content_div:
             jobdescription = content_div.text(strip=True, separator='\n')
             # Clean up
-            jobdescription = re.sub(r'\n\s*\n+', '\n\n', jobdescription).strip()
-            jobdescription = jobdescription.replace("Job Description:\nJob Description:", "Job Description:")
+            jobdescription = re.sub(r"\n\s*\n+", "\n\n", jobdescription).strip()
+            jobdescription = jobdescription.replace(
+                "Job Description:\nJob Description:", "Job Description:"
+            )
 
+        # Mapping des formats d'expérience du type "x-y years" -> on garde "y years"
+        jobexperience = ""
+        text_lower = (jobdescription or "").lower()
+        # Exemple dans la page : "4-8 years of experience in Global Markets"
+        range_match = re.search(r"(\d+)\s*-\s*(\d+)\s+years", text_lower)
+        if range_match:
+            last_year = range_match.group(2)
+            jobexperience = f"{last_year} years"
+
+        # Données de base du job_dict
         job_dict = {
             "jobid": int(jobid) if jobid and jobid.isdigit() else int(datetime.now().timestamp()),
+            "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": jobdescription,
+            "jobexperience": jobexperience,
             "jobniche": jobniche,
             "jobpattern": jobpattern,
             "jobcountry": jobcountry,
             "jobaddress": jobaddress,
             "scrapedsource": position_link
         }
+
+        # Appliquer la logique de validate_data 
+        parsed = self.validate_data(job_dict)
+        # On met à jour seulement les variables issues de validate_data
+        job_dict["jobqualifications"] = parsed.jobqualifications
+        job_dict["jobexperience"] = parsed.jobexperience
+        job_dict["jobpattern"] = parsed.jobpattern
+        job_dict["jobsalary"] = parsed.jobsalary
+
         return job_dict
 
-
+"""
 if __name__ == "__main__":
     import json
-    
+
     scraper = BankOfAmerica()
     positions = scraper.get_positions()
     print(f"Found {len(positions)} positions")
-    
-    all_details = []
-    for position in positions:
-        print(f"Scraping {position}")
-        try:
-            details = scraper.get_position_details(position)
-            all_details.append(details)
-            print(f"Scraped job {details.get('jobid')}")
-        except Exception as e:
-            print(f"Error scraping {position}: {e}")
 
-    with open("bankofamerica_results.json", "w", encoding="utf-8") as f:
-        json.dump(all_details, f, indent=4, ensure_ascii=False)
-    
-    print(f"Saved {len(all_details)} jobs to bankofamerica_results.json")
+    # Écriture progressive dans le JSON pour voir les résultats au fur et à mesure
+    output_path = "bankofamerica_results.json"
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write("[\n")
+        first = True
+
+        for position in positions:
+            print(f"Scraping {position}")
+            try:
+                details = scraper.get_position_details(position)
+
+                if not first:
+                    f.write(",\n")
+                # JSON bien formaté pour chaque offre (indentation)
+                f.write(json.dumps(details, ensure_ascii=False, indent=2))
+                f.flush()  # On force l'écriture disque à chaque offre
+                first = False
+                print(f"Scraped job {details.get('jobid')}")
+            except Exception as e:
+                print(f"Error scraping {position}: {e}")
+                continue
+
+        f.write("\n]\n")
+        f.flush()
+
+    print(f"Saved results progressively to {output_path}")
+"""
