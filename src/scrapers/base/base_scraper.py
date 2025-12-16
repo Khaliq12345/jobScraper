@@ -2,7 +2,9 @@ from abc import abstractmethod
 import httpx
 from src.storage.database import Database
 from src.storage.model import jobs
-
+from src.utils import static
+from functools import partial
+from geopy.geocoders import Nominatim
 
 class BaseScraper(Database):
     def __init__(self, name: str, link: str,  companyid: int, domain: str = "") -> None:
@@ -27,7 +29,55 @@ class BaseScraper(Database):
     def validate_data(job_details: dict):
         """Validate Scraped job info"""
         scraped_job = jobs(**job_details)
+        geolocator = Nominatim(user_agent="my-app")
+        geocode = partial(geolocator.geocode, language="en")
+
+        # Job qualification
+        if not scraped_job.jobqualifications:
+            for qualification in static.qualifications:
+                if qualification.lower() in scraped_job.jobdescription:
+                    scraped_job.jobqualifications = qualification
+                else:
+                    scraped_job.jobqualifications = "General"
+
+        # Job exprience
+        if not scraped_job.jobexperience:
+            for exprience in static.experienceLevels:
+                if exprience.lower() in scraped_job.jobdescription:
+                    scraped_job.jobexperience = exprience.replace(' ', '-')
+                else:
+                    scraped_job.jobexperience = "General"
+
+        # Job pattern
+        if not scraped_job.jobpattern:
+            for pattern in static.workPatterns:
+                if pattern.lower() in scraped_job.jobpattern:
+                    scraped_job.jobpattern = pattern.replace(' ', '-')
+
+                else:
+                    scraped_job.jobpattern = "full-time"
+
+        # Job salary
+        if not scraped_job.jobsalary:
+            scraped_job.jobsalary = static.jobSalary_default
+            
+        # country and state
+        print(scraped_job.jobaddress)
+        country_raw = geocode(scraped_job.jobaddress)
+        if not country_raw:
+            scraped_job.jobaddress = "Same as country"
+            scraped_job.jobcountry = "Worldwide"
+        else:
+            if not country_raw.get("name"):
+                scraped_job.jobaddress = "Same as country"
+                scraped_job.jobcountry = "Worldwide"
+            else:
+                scraped_job.jobcountry = country_raw.get("name")
+                if scraped_job.jobcountry == country_raw.get("name"):
+                    scraped_job.jobaddress = "Same as country"
+
         return scraped_job
+        
     
 
     @abstractmethod
@@ -51,7 +101,7 @@ class BaseScraper(Database):
                 parsed_position = self.validate_data(job_details)
                 print(parsed_position)
 
-                self.send_job(parsed_position)
+                # self.send_job(parsed_position)
             except Exception as e:
                 print(f"ERROR - {str(e)}")
 
