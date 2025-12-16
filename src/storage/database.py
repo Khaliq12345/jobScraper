@@ -1,10 +1,14 @@
+import sys
+sys.path.append('.')
+
 from sqlmodel import Session, create_engine, select
 from src.storage.model import jobs, SQLModel
+from config.config import DB_USER, DB_PASSWORD, DB_HOST, DB_DATABASE
 
 
 class Database:
     def __init__(self) -> None:
-        self.engine = create_engine("sqlite:///foo.db")
+        self.engine = create_engine(f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_DATABASE}")
 
 
     def create_db_and_tables(self):
@@ -18,10 +22,16 @@ class Database:
 
         return []
 
-    def send_jobs(self, jobs: list[dict]):
+    def send_job(self, job: jobs):
         """Send all jobs to database"""
         with Session(bind=self.engine) as session:
-            session.add_all(jobs)
+            session.add(job)
             session.commit()
+        print("JOB SENT")
+
+
+if __name__ == "__main__":
+    db = Database()
+    db.get_jobs()
 
 
