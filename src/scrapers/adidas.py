@@ -2,6 +2,7 @@ from datetime import datetime
 from urllib.parse import urljoin
 import json
 from xml.etree import ElementTree as ET
+import re
 
 import cloudscraper
 from selectolax.parser import HTMLParser
@@ -60,6 +61,14 @@ class Adidas(BaseScraper):
             desc_el.text(strip=True, separator=" ") if desc_el else ""
         )
 
+        # Experience : on mappe les formats "x-y years" en gardant la dernière année (y years)
+        jobexperience = ""
+        text_lower = (jobdescription or "").lower()
+        range_match = re.search(r"(\d+)\s*-\s*(\d+)\s+years", text_lower)
+        if range_match:
+            last_year = range_match.group(2)
+            jobexperience = f"{last_year} years"
+
         # Localisation (ville / état / pays)
         city_el = soup.css_first('span[data-careersite-propertyid="city"]')
         state_el = soup.css_first('span[data-careersite-propertyid="state"]')
@@ -72,44 +81,82 @@ class Adidas(BaseScraper):
         # Type de contrat
         pattern_el = soup.css_first('span[data-careersite-propertyid="shifttype"]')
         jobpattern = pattern_el.text(strip=True) if pattern_el else ""
+        # Normalisation des valeurs de pattern vers la liste workPatterns (static.workPatterns)
+        pattern_map = {
+            "temp": "Temporary",
+            "temporary": "Temporary",
+            "part time": "Part Time",
+            "part-time": "Part Time",
+            "full time": "Full Time",
+            "full-time": "Full Time",
+            "pupil": "Temporary",
+            "limited duration": "Contract",
+            # "seasonal": ...  # ignoré pour le moment
+        }
+        norm = pattern_map.get(jobpattern.lower())
+        if norm:
+            jobpattern = norm
 
         # On met le pays dans jobcountry, et l'adresse complète dans jobaddress
         parts = [p for p in [city, state, country] if p]
         jobaddress = ", ".join(parts) if parts else ""
         jobcountry = country
 
+        jobniche = "Job"
+
+        # Données de base du job_dict
         job_dict = {
             "jobid": int(datetime.now().timestamp()),
+            "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": jobdescription,
+            "jobexperience": jobexperience,  # peut être complété / conservé par validate_data
             "jobpattern": jobpattern,
+            "jobniche": jobniche,
             "jobcountry": jobcountry,
             "jobaddress": jobaddress,
             "scrapedsource": position_link,
         }
 
+        # Utiliser validate_data pour gérer jobqualifications, jobexperience et jobpattern (et jobsalary)
+        parsed = self.validate_data(job_dict)
+        job_dict["jobqualifications"] = parsed.jobqualifications
+        job_dict["jobexperience"] = parsed.jobexperience
+        job_dict["jobpattern"] = parsed.jobpattern
+        job_dict["jobsalary"] = parsed.jobsalary
+
         return job_dict
 
-"""
+
 if __name__ == "__main__":
     scraper = Adidas()
     positions = scraper.get_positions()
     print(f"\nNombre de positions trouvées: {len(positions)}")
 
-    all_jobs: list[dict] = []
-    if positions:
-        for i, position_link in enumerate(positions, 1):
-            print(f"\nScraping [{i}/{len(positions)}]: {position_link}")
-            try:
-                job_dict = scraper.get_position_details(position_link)
-                print(json.dumps(job_dict, indent=2, ensure_ascii=False))
-                all_jobs.append(job_dict)
-            except Exception as e:
-                print(f"Erreur lors du scraping de {position_link}: {e}")
+    output_path = "adidas_jobs.json"
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write("[\n")
+        first = True
 
-    with open("adidas_jobs.json", "w", encoding="utf-8") as f:
-        json.dump(all_jobs, f, indent=4, ensure_ascii=False)
+        if positions:
+            for i, position_link in enumerate(positions, 1):
+                print(f"\nScraping [{i}/{len(positions)}]: {position_link}")
+                try:
+                    job_dict = scraper.get_position_details(position_link)
+                    print(json.dumps(job_dict, indent=2, ensure_ascii=False))
 
-    print(f"\nScraping terminé. {len(all_jobs)} offres sauvegardées dans 'adidas_jobs.json'.")
-"""
+                    if not first:
+                        f.write(",\n")
+                    f.write(json.dumps(job_dict, ensure_ascii=False, indent=2))
+                    f.flush()
+                    first = False
+                except Exception as e:
+                    print(f"Erreur lors du scraping de {position_link}: {e}")
+                    continue
+
+        f.write("\n]\n")
+        f.flush()
+
+    print("\nScraping terminé. Résultats écrits progressivement dans 'adidas_jobs.json'.")
+
 
