@@ -81,7 +81,7 @@ class Adidas(BaseScraper):
         # Type de contrat
         pattern_el = soup.css_first('span[data-careersite-propertyid="shifttype"]')
         jobpattern = pattern_el.text(strip=True) if pattern_el else ""
-        # Normalisation des valeurs de pattern vers la liste workPatterns (static.workPatterns)
+        # Normalisation des valeurs de pattern 
         pattern_map = {
             "temp": "Temporary",
             "temporary": "Temporary",
@@ -91,7 +91,7 @@ class Adidas(BaseScraper):
             "full-time": "Full Time",
             "pupil": "Temporary",
             "limited duration": "Contract",
-            # "seasonal": ...  # ignoré pour le moment
+            "seasonal": "Seasonal",
         }
         norm = pattern_map.get(jobpattern.lower())
         if norm:
@@ -110,7 +110,7 @@ class Adidas(BaseScraper):
             "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": jobdescription,
-            "jobexperience": jobexperience,  # peut être complété / conservé par validate_data
+            "jobexperience": jobexperience,  
             "jobpattern": jobpattern,
             "jobniche": jobniche,
             "jobcountry": jobcountry,
@@ -118,7 +118,7 @@ class Adidas(BaseScraper):
             "scrapedsource": position_link,
         }
 
-        # Utiliser validate_data pour gérer jobqualifications, jobexperience et jobpattern (et jobsalary)
+        # Utiliser validate_data 
         parsed = self.validate_data(job_dict)
         job_dict["jobqualifications"] = parsed.jobqualifications
         job_dict["jobexperience"] = parsed.jobexperience
@@ -127,7 +127,7 @@ class Adidas(BaseScraper):
 
         return job_dict
 
-
+"""
 if __name__ == "__main__":
     scraper = Adidas()
     positions = scraper.get_positions()
@@ -158,5 +158,7 @@ if __name__ == "__main__":
         f.flush()
 
     print("\nScraping terminé. Résultats écrits progressivement dans 'adidas_jobs.json'.")
+    
+"""
 
 
