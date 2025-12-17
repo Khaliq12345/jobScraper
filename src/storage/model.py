@@ -3,6 +3,7 @@ from sqlmodel import Field, SQLModel
 
 class jobs(SQLModel, table=True):
     jobid:  int = Field(primary_key=True)
+    companyid: int 
     jobposition: str = ""
     jobdescription: str = ""
     jobqualifications: str = ""

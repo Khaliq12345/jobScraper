@@ -5,9 +5,13 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "geopy>=2.4.1",
     "httpx>=0.28.1",
+    "pgeocode>=0.5.0",
+    "pycountry>=24.6.1",
     "pydantic>=2.12.5",
     "pymysql>=1.1.2",
+    "python-dotenv>=1.2.1",
     "selectolax>=0.4.6",
     "sqlmodel>=0.0.27",
 ]

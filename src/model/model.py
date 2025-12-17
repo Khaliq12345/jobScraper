@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 class Scraper(BaseModel):
     jobid: int
+    companyid: int
     jobposition: str = ""
     jobdescription: str = ""
     jobqualifications: str = ""
