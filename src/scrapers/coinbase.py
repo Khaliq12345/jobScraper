@@ -7,7 +7,6 @@ import re
 import time
 import random
 import cloudscraper
-from bs4 import BeautifulSoup
 
 
 class Coinbase(BaseScraper):
@@ -28,27 +27,33 @@ class Coinbase(BaseScraper):
         )
 
     def get_html(self, url: str) -> str:
-        """Extract the html from a url using cloudscraper"""
-        # Délai aléatoire entre 15 et 25 secondes pour éviter les 429
-        delay = random.uniform(15, 25)
+        """Extract the html from a url using cloudscraper.
+
+        Pour les tests locaux, délais minimaux pour démarrer rapidement.
+        """
+        # Délai minimal pour les tests (0.1-0.5 secondes)
+        delay = random.uniform(0.1, 0.5)
         time.sleep(delay)
-        
+
         headers = {
             "Referer": "https://www.coinbase.com/careers/positions",
             "Sec-Fetch-Site": "same-origin",
         }
         response = self.scraper.get(url, headers=headers)
-        
+
         # Gérer les erreurs 429
         if response.status_code == 429:
-            time.sleep(60)
+            print(f"⚠️ 429 détecté, attente de 5 secondes...")
+            time.sleep(5)
             response = self.scraper.get(url, headers=headers)
-        
+
         response.raise_for_status()
         return response.text
 
     def get_positions(self) -> list[str]:
+        """Extract position links - optimisé avec regex directe sur le HTML brut"""
         position_links = []
+        seen_ids = set()
 
         page = 1
         max_pages = getattr(self, 'max_pages', None)
@@ -57,115 +62,102 @@ class Coinbase(BaseScraper):
                 break
                 
             url = f"{self.link}" if page == 1 else f"{self.link}?page={page}"
+            print(f"📄 Récupération page {page}: {url}")
             
             try:
                 html = self.get_html(url)
+                print(f"✅ Page {page} récupérée ({len(html)} caractères)")
             except Exception as e:
+                print(f"❌ Erreur page {page}: {e}")
                 if "429" in str(e) or "Too Many Requests" in str(e):
                     break
                 raise
             
-            soup = HTMLParser(html)
+            # Extraction directe avec regex sur le HTML brut (plus rapide)
+            # Chercher les offerId dans le HTML
+            offer_ids = re.findall(r'"offerId"\s*:\s*"?(\d+)"?', html)
+            print(f"   → Trouvé {len(offer_ids)} offerId(s) dans le HTML")
+            for offer_id in offer_ids:
+                if offer_id not in seen_ids:
+                    seen_ids.add(offer_id)
+                    position_links.append(f"{self.domain}/careers/positions/{offer_id}")
+            
+            # Chercher aussi les liens directs dans le HTML
+            href_matches = re.findall(r'href=["\']([^"\']*?/careers/positions/\d+[^"\']*)["\']', html)
+            print(f"   → Trouvé {len(href_matches)} lien(s) direct(s)")
+            for href in href_matches:
+                position_link = urljoin(self.domain, href) if self.domain else href
+                position_link = position_link.split("?")[0].split("#")[0]
+                if position_link not in position_links:
+                    position_links.append(position_link)
 
-            # Chercher d'abord dans le JSON  (server-app-state)
-            scripts = soup.css("script")
-            found_in_json = False
-            for script in scripts:
-                script_id = script.attributes.get("id", "")
-                if script_id == "server-app-state":
-                    try:
-                        data = json.loads(script.text())
-                        if "relayStoreData" in data:
-                            relay_data = json.loads(data["relayStoreData"])
-                            if isinstance(relay_data, dict) and "recordMap" in relay_data:
-                                record_map = relay_data["recordMap"]
-                                for value in record_map.values():
-                                    if isinstance(value, dict) and "offerId" in str(value):
-                                        value_str = json.dumps(value)
-                                        matches = re.findall(r'"offerId":\s*"?(\d+)"?', value_str)
-                                        for offer_id in matches:
-                                            position_link = f"{self.domain}/careers/positions/{offer_id}"
-                                            if position_link not in position_links:
-                                                position_links.append(position_link)
-                                                found_in_json = True
-                    except (json.JSONDecodeError, KeyError):
-                        pass
-                
-                # Chercher aussi dans les autres scripts
-                script_text = script.text()
-                if "offerId" in script_text and "positions" in script_text:
-                    matches = re.findall(r'"offerId":\s*"?(\d+)"?', script_text)
-                    for offer_id in matches:
-                        position_link = f"{self.domain}/careers/positions/{offer_id}"
-                        if position_link not in position_links:
-                            position_links.append(position_link)
-                            found_in_json = True
+            print(f"   → Total positions trouvées: {len(position_links)}")
 
-            # Chercher aussi les liens dans le HTML
-            job_links = soup.css('a[href*="/careers/positions/"]')
-            for link in job_links:
-                href = link.attributes.get("href", "")
-                if href and "/careers/positions/" in href:
-                    position_link = urljoin(self.domain, href) if self.domain else href
-                    position_link = position_link.split("?")[0]
-                    if position_link not in position_links:
-                        position_links.append(position_link)
-
-            # Si aucune position trouvée, arrêter
-            if len(position_links) == 0:
+            # Si aucune position trouvée sur cette page, arrêter
+            if not offer_ids and not href_matches:
+                print(f"   → Aucune position trouvée, arrêt de la pagination")
                 break
 
             page += 1
 
-        return position_links
+        result = list(dict.fromkeys(position_links))  # Dédupliquer en gardant l'ordre
+        print(f"\n✅ Total final: {len(result)} positions uniques")
+        return result
 
     def get_position_details(self, position_link: str) -> dict:
+        """Extract job details - optimisé avec extraction directe du JSON-LD"""
         html = self.get_html(position_link)
-        soup = HTMLParser(html)
-        bs_soup = BeautifulSoup(html, 'html.parser')
-
-        # Extraire le JSON-LD qui contient les données structurées
-        json_ld = None
-        json_ld_script = soup.css_first('script[type="application/ld+json"]')
-        if json_ld_script:
-            try:
-                json_ld = json.loads(json_ld_script.text())
-            except json.JSONDecodeError:
-                pass
-
-        # Job ID depuis l'URL (dernier segment numérique)
+        
+        # Job ID depuis l'URL
         job_id = ""
         url_match = re.search(r'/positions/(\d+)/?', position_link)
         if url_match:
             job_id = url_match.group(1)
 
-        # Job Position
-        jobposition = ""
-        if json_ld and "title" in json_ld:
-            jobposition = json_ld["title"]
+        # Extraire le JSON-LD directement avec regex 
+        json_ld = None
+        json_ld_match = re.search(r'<script[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script>', html, re.DOTALL)
+        if json_ld_match:
+            try:
+                json_ld = json.loads(json_ld_match.group(1))
+            except json.JSONDecodeError:
+                pass
 
-        # Job Description
+        # Si pas de JSON-LD, utiliser HTMLParser en fallback
+        if not json_ld:
+            soup = HTMLParser(html)
+            json_ld_script = soup.css_first('script[type="application/ld+json"]')
+            if json_ld_script:
+                try:
+                    json_ld = json.loads(json_ld_script.text())
+                except json.JSONDecodeError:
+                    pass
+
+        # Extraction des données depuis JSON-LD
+        jobposition = json_ld.get("title", "") if json_ld else ""
+        
+        # Description : extraire et nettoyer le HTML
         jobdescription = ""
         if json_ld and "description" in json_ld:
             desc_html = json_ld["description"]
             if isinstance(desc_html, str):
-                desc_soup = BeautifulSoup(desc_html, 'html.parser')
-                jobdescription = desc_soup.get_text(separator="\n", strip=True)
+                # Nettoyer le HTML rapidement avec regex 
+                jobdescription = re.sub(r'<[^>]+>', '', desc_html)  # Enlever les tags HTML
+                jobdescription = re.sub(r'&nbsp;', ' ', jobdescription)
+                jobdescription = re.sub(r'&amp;', '&', jobdescription)
+                jobdescription = re.sub(r'&lt;', '<', jobdescription)
+                jobdescription = re.sub(r'&gt;', '>', jobdescription)
                 jobdescription = re.sub(r'\n\s*\n+', '\n\n', jobdescription).strip()
 
-        # Job Qualifications - chercher "What we look for in you" dans la description
-        jobqualifications = ""
+        # Experience : mapping "x-y years" -> "y years"
+        jobexperience = ""
         if jobdescription:
-            parts = re.split(r'What we look for in you', jobdescription, flags=re.IGNORECASE, maxsplit=1)
-            if len(parts) > 1:
-                qual_text = parts[1]
-                qual_text = re.split(r'Nice to haves|Job\s*#:', qual_text, flags=re.IGNORECASE, maxsplit=1)[0]
-                jobqualifications = qual_text.strip()
-                # Enlever les préfixes comme "(ie. job requirements):"
-                jobqualifications = re.sub(r'^\([^)]+\):\s*', '', jobqualifications, flags=re.IGNORECASE)
-                jobqualifications = re.sub(r'\n\s*\n+', '\n\n', jobqualifications).strip()
+            text_lower = jobdescription.lower()
+            range_match = re.search(r"(\d+)\s*-\s*(\d+)\s+years", text_lower)
+            if range_match:
+                jobexperience = f"{range_match.group(2)} years"
 
-        # Job Pattern (Full time / Part time)
+        # Job Pattern
         jobpattern = ""
         if jobdescription:
             desc_lower = jobdescription.lower()
@@ -174,22 +166,18 @@ class Coinbase(BaseScraper):
             elif "part-time" in desc_lower or "part time" in desc_lower:
                 jobpattern = "Part time"
 
-        # Job Salary - chercher dans div.pay-range
+        # Job Salary - extraction rapide avec regex
         jobsalary = ""
-        salary_div = soup.css_first("div.pay-range")
-        if salary_div:
-            salary_spans = salary_div.css("span")
-            amounts = []
-            for span in salary_spans:
-                text = span.text(strip=True)
-                if text.startswith("$"):
-                    amounts.append(text)
+        salary_match = re.search(r'<div[^>]*class=["\']pay-range["\'][^>]*>(.*?)</div>', html, re.DOTALL)
+        if salary_match:
+            salary_html = salary_match.group(1)
+            amounts = re.findall(r'\$[\d,]+', salary_html)
             if len(amounts) >= 2:
                 jobsalary = f"{amounts[0]} - {amounts[1]}"
             elif len(amounts) == 1:
                 jobsalary = amounts[0]
 
-        # Job Address et Country
+        # Job Address et Country depuis JSON-LD
         jobaddress = ""
         jobcountry = ""
         if json_ld and "jobLocation" in json_ld:
@@ -197,26 +185,82 @@ class Coinbase(BaseScraper):
             if isinstance(location, dict) and "address" in location:
                 address = location["address"]
                 if isinstance(address, str):
-                    if address.startswith("Remote"):
-                        jobaddress = "Remote"
-                        if " - " in address:
-                            jobcountry = address.split(" - ", 1)[1].strip()
-                    else:
-                        jobaddress = address
+                    # Garder l'adresse complète dans jobaddress
+                    jobaddress = address
+                    
+                    # Extraire le pays
+                    if address.startswith("Remote") and " - " in address:
+                        # Pour "Remote - USA" -> jobcountry = "USA"
+                        jobcountry = address.split(" - ", 1)[1].strip()
+                    elif "," in address:
+                        # Pour les adresses avec virgules, prendre la dernière partie
+                        # Mais attention : "Charlotte, NC" -> "NC" n'est pas un pays
+
                         parts = address.split(",")
-                        if len(parts) > 0:
+                        if parts:
                             jobcountry = parts[-1].strip()
 
+        jobniche = "Job"
+
+ 
         job_dict = {
-            "jobid": int(job_id) if job_id.isdigit() else int(datetime.now().timestamp()),
+            "jobid": int(job_id) if job_id and job_id.isdigit() else int(datetime.now().timestamp()),
+            "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": jobdescription,
-            "jobqualifications": jobqualifications,
+            "jobexperience": jobexperience,
             "jobpattern": jobpattern,
+            "jobniche": jobniche,
             "jobsalary": jobsalary,
             "jobcountry": jobcountry,
             "jobaddress": jobaddress,
-            "scrapedsource": position_link
+            "scrapedsource": position_link,
         }
+
+        # Utiliser validate_data pour compléter les champs
+        parsed = self.validate_data(job_dict)
+        job_dict["jobqualifications"] = parsed.jobqualifications
+        job_dict["jobexperience"] = parsed.jobexperience
+        job_dict["jobpattern"] = parsed.jobpattern
+        job_dict["jobsalary"] = parsed.jobsalary
+
         return job_dict
 
+"""
+if __name__ == "__main__":
+    import json
+
+    print("Démarrage du scraper Coinbase...")
+    scraper = Coinbase()
+    print(" Scraper initialisé")
+    
+    print("\n Recherche des positions...")
+    positions = scraper.get_positions()
+    print(f"\n Nombre de positions trouvées: {len(positions)}")
+
+    output_path = "coinbase_jobs.json"
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write("[\n")
+        first = True
+
+        if positions:
+            for i, position_link in enumerate(positions, 1):
+                print(f"\nScraping [{i}/{len(positions)}]: {position_link}")
+                try:
+                    job_dict = scraper.get_position_details(position_link)
+                    print(json.dumps(job_dict, indent=2, ensure_ascii=False))
+
+                    if not first:
+                        f.write(",\n")
+                    f.write(json.dumps(job_dict, ensure_ascii=False, indent=2))
+                    f.flush()
+                    first = False
+                except Exception as e:
+                    print(f"Erreur lors du scraping de {position_link}: {e}")
+                    continue
+
+        f.write("\n]\n")
+        f.flush()
+
+    print("\nScraping terminé. Résultats écrits progressivement dans 'coinbase_jobs.json'.")
+"""
