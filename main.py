@@ -1,5 +1,6 @@
-from src.scrapers.wise import Wise
+from src.scrapers.new_sanofi import Sanofi
 
 if __name__ == "__main__":
-    wise = Wise()
-    wise.main()
+    # scraper =  JB()
+    scraper = Sanofi()
+    scraper.main()

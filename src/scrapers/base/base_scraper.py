@@ -21,6 +21,7 @@ class BaseScraper(Database):
         """Extract the html from a url"""
         response = httpx.get(url)
         print(response)
+        print(response.url)
         response.raise_for_status()
         return response.text
 
@@ -57,24 +58,37 @@ class BaseScraper(Database):
                 else:
                     scraped_job.jobpattern = "full-time"
 
+        if not scraped_job.jobniche:
+            scraped_job.jobniche = "Job"
+
         # Job salary
         if not scraped_job.jobsalary:
             scraped_job.jobsalary = static.jobSalary_default
             
         # country and state
-        print(scraped_job.jobaddress)
-        country_raw = geocode(scraped_job.jobaddress)
-        if not country_raw:
-            scraped_job.jobaddress = "Same as country"
-            scraped_job.jobcountry = "Worldwide"
-        else:
-            if not country_raw.get("name"):
-                scraped_job.jobaddress = "Same as country"
-                scraped_job.jobcountry = "Worldwide"
+        if job_details.get("parse_location"):
+            country_raw = geocode(scraped_job.jobcountry)
+            if not country_raw:
+                scraped_job.jobaddress = "Same As Country"
+                scraped_job.jobcountry = "Global"
             else:
-                scraped_job.jobcountry = country_raw.get("name")
-                if scraped_job.jobcountry == country_raw.get("name"):
-                    scraped_job.jobaddress = "Same as country"
+                country_raw = country_raw.raw
+                print(country_raw)
+                if not country_raw.get("name"):
+                    scraped_job.jobcountry = "Same As Address"
+                    scraped_job.jobaddress = scraped_job.jobcountry
+                else:
+                    if country_raw.get("addresstype") == "country":
+                        scraped_job.jobcountry = country_raw.get("name")
+                        scraped_job.jobaddress = "Same As Country"
+                    else:
+                        scraped_job.jobaddress = country_raw.get("name")
+                        if "," in country_raw.get("display_name"):
+                            scraped_job.jobcountry = country_raw.get("display_name").split(",")[-1].strip()
+                        else:
+                            scraped_job.jobcountry = "Same As Address"
+
+        scraped_job.jobsalary = scraped_job.jobsalary.replace("Salary:", "")
 
         return scraped_job
         

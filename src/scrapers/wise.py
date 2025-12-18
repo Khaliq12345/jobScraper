@@ -68,6 +68,7 @@ class Wise(BaseScraper):
             if country
             else ""
         )
+
         job_info = soup.css_first('div[aria-label="Job description"]')
         job_info = job_info.text(strip=True, separator=" ") if job_info else ""
         job_description = job_info.split("Job Description")[1]
