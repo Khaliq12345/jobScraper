@@ -21,9 +21,8 @@ class Nike(BaseScraper):
         position_links: list[str] = []
         page = 1
         page_size = 10
-        max_pages = 5  # Limite temporaire à 5 pages
 
-        while page <= max_pages:
+        while True:
             if page == 1:
                 url = self.link
             else:
@@ -214,7 +213,7 @@ class Nike(BaseScraper):
         }
         return job_dict
 
-
+"""
 if __name__ == "__main__":
     scraper = Nike()
     positions = scraper.get_positions()
@@ -257,4 +256,5 @@ if __name__ == "__main__":
         f.flush()
 
     print(f"\nScraping terminé. {len(all_jobs)} offres sauvegardées dans 'nike_jobs.json'.")
+"""
 
