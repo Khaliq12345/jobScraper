@@ -3,8 +3,6 @@ import httpx
 from src.storage.database import Database
 from src.storage.model import jobs
 from src.utils import static
-from functools import partial
-from geopy.geocoders import Nominatim
 
 class BaseScraper(Database):
     def __init__(self, name: str, link: str,  companyid: int, domain: str = "") -> None:
@@ -30,8 +28,8 @@ class BaseScraper(Database):
     def validate_data(job_details: dict):
         """Validate Scraped job info"""
         scraped_job = jobs(**job_details)
-        geolocator = Nominatim(user_agent="my-app")
-        geocode = partial(geolocator.geocode, language="en")
+        # geolocator = Nominatim(user_agent="my-app")
+        # geocode = partial(geolocator.geocode, language="en")
 
         # Job qualification
         if not scraped_job.jobqualifications:
@@ -64,29 +62,7 @@ class BaseScraper(Database):
         # Job salary
         if not scraped_job.jobsalary:
             scraped_job.jobsalary = static.jobSalary_default
-            
-        # country and state
-        if job_details.get("parse_location"):
-            country_raw = geocode(scraped_job.jobcountry)
-            if not country_raw:
-                scraped_job.jobaddress = "Same As Country"
-                scraped_job.jobcountry = "Global"
-            else:
-                country_raw = country_raw.raw
-                print(country_raw)
-                if not country_raw.get("name"):
-                    scraped_job.jobcountry = "Same As Address"
-                    scraped_job.jobaddress = scraped_job.jobcountry
-                else:
-                    if country_raw.get("addresstype") == "country":
-                        scraped_job.jobcountry = country_raw.get("name")
-                        scraped_job.jobaddress = "Same As Country"
-                    else:
-                        scraped_job.jobaddress = country_raw.get("name")
-                        if "," in country_raw.get("display_name"):
-                            scraped_job.jobcountry = country_raw.get("display_name").split(",")[-1].strip()
-                        else:
-                            scraped_job.jobcountry = "Same As Address"
+        
 
         scraped_job.jobsalary = scraped_job.jobsalary.replace("Salary:", "")
 

@@ -8,6 +8,7 @@ dependencies = [
     "geopy>=2.4.1",
     "httpx>=0.28.1",
     "pgeocode>=0.5.0",
+    "ptpython>=3.0.32",
     "pycountry>=24.6.1",
     "pydantic>=2.12.5",
     "pymysql>=1.1.2",

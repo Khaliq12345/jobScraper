@@ -1,6 +1,6 @@
-from src.scrapers.new_sanofi import Sanofi
+from src.scrapers.new_dangote import Dangote
 
 if __name__ == "__main__":
     # scraper =  JB()
-    scraper = Sanofi()
+    scraper = Dangote()
     scraper.main()

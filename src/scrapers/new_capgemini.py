@@ -12,7 +12,7 @@ class Capgemini(BaseScraper):
             name="Capgemini",
             link="https://www.capgemini.com/wp-json/macs/v1/jobs?size=5000",
             domain="https://www.capgemini.com",
-            companyid=200,
+            companyid=47,
         )
 
     def get_positions(self) -> list[str]:
@@ -25,7 +25,7 @@ class Capgemini(BaseScraper):
         return jobs
 
     def get_position_details(self, job: dict) -> dict:
-        sleep(2)
+        sleep(0.5)
         jobposition = job["title"]
         category = job["department"]
         country = job["location"]
