@@ -1,4 +1,3 @@
-from urllib.parse import urljoin
 from datetime import datetime
 import json
 import re
@@ -7,12 +6,13 @@ from src.scrapers.base.base_scraper import BaseScraper
 
 
 class Ecolab(BaseScraper):
-    def __init__(self) -> None:
+    def __init__(self, save: bool) -> None:
         super().__init__(
             name="Ecolab",
             link="https://jobs.ecolab.com/global/en/search-results",
             domain="https://jobs.ecolab.com",
-            companyid=15
+            companyid=15,
+            save=save
         )
 
     def get_positions(self) -> list[str]:

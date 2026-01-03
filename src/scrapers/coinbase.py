@@ -10,12 +10,13 @@ import cloudscraper
 
 
 class Coinbase(BaseScraper):
-    def __init__(self) -> None:
+    def __init__(self, save: bool) -> None:
         super().__init__(
             name="Coinbase",
             link="https://www.coinbase.com/careers/positions",
             domain="https://www.coinbase.com",
-            companyid=18
+            companyid=32,
+            save=save
         )
         self.scraper = cloudscraper.create_scraper(
             browser={
@@ -43,7 +44,7 @@ class Coinbase(BaseScraper):
 
         # Gérer les erreurs 429
         if response.status_code == 429:
-            print(f"⚠️ 429 détecté, attente de 5 secondes...")
+            print("⚠️ 429 détecté, attente de 5 secondes...")
             time.sleep(5)
             response = self.scraper.get(url, headers=headers)
 
@@ -95,7 +96,7 @@ class Coinbase(BaseScraper):
 
             # Si aucune position trouvée sur cette page, arrêter
             if not offer_ids and not href_matches:
-                print(f"   → Aucune position trouvée, arrêt de la pagination")
+                print("   → Aucune position trouvée, arrêt de la pagination")
                 break
 
             page += 1
@@ -199,9 +200,6 @@ class Coinbase(BaseScraper):
                         parts = address.split(",")
                         if parts:
                             jobcountry = parts[-1].strip()
-
-        jobniche = "Job"
-
  
         job_dict = {
             "jobid": int(job_id) if job_id and job_id.isdigit() else int(datetime.now().timestamp()),
@@ -210,57 +208,10 @@ class Coinbase(BaseScraper):
             "jobdescription": jobdescription,
             "jobexperience": jobexperience,
             "jobpattern": jobpattern,
-            "jobniche": jobniche,
             "jobsalary": jobsalary,
             "jobcountry": jobcountry,
             "jobaddress": jobaddress,
             "scrapedsource": position_link,
         }
 
-        # Utiliser validate_data pour compléter les champs
-        parsed = self.validate_data(job_dict)
-        job_dict["jobqualifications"] = parsed.jobqualifications
-        job_dict["jobexperience"] = parsed.jobexperience
-        job_dict["jobpattern"] = parsed.jobpattern
-        job_dict["jobsalary"] = parsed.jobsalary
-
         return job_dict
-
-"""
-if __name__ == "__main__":
-    import json
-
-    print("Démarrage du scraper Coinbase...")
-    scraper = Coinbase()
-    print(" Scraper initialisé")
-    
-    print("\n Recherche des positions...")
-    positions = scraper.get_positions()
-    print(f"\n Nombre de positions trouvées: {len(positions)}")
-
-    output_path = "coinbase_jobs.json"
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write("[\n")
-        first = True
-
-        if positions:
-            for i, position_link in enumerate(positions, 1):
-                print(f"\nScraping [{i}/{len(positions)}]: {position_link}")
-                try:
-                    job_dict = scraper.get_position_details(position_link)
-                    print(json.dumps(job_dict, indent=2, ensure_ascii=False))
-
-                    if not first:
-                        f.write(",\n")
-                    f.write(json.dumps(job_dict, ensure_ascii=False, indent=2))
-                    f.flush()
-                    first = False
-                except Exception as e:
-                    print(f"Erreur lors du scraping de {position_link}: {e}")
-                    continue
-
-        f.write("\n]\n")
-        f.flush()
-
-    print("\nScraping terminé. Résultats écrits progressivement dans 'coinbase_jobs.json'.")
-"""

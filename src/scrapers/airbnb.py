@@ -1,4 +1,3 @@
-import re
 import time
 from urllib.parse import urljoin
 
@@ -8,12 +7,13 @@ from src.scrapers.base.base_scraper import BaseScraper
 
 
 class Airbnb(BaseScraper):
-    def __init__(self) -> None:
+    def __init__(self, save: bool) -> None:
         super().__init__(
             name="Airbnb",
             link="https://careers.airbnb.com/positions/",
             domain="https://careers.airbnb.com",
-            companyid=15,
+            companyid=19,
+            save=save
         )
 
     def get_positions(self) -> list[str]:
@@ -107,41 +107,9 @@ class Airbnb(BaseScraper):
 
         job_description = "\n\n".join(desc_parts).strip()
 
-        # === Extraire qualifications/expérience depuis la description ===
-        jobqualifications = ""
-        jobexperience = ""
-
-        # Chercher "Your Expertise:" section
-        if "Your Expertise:" in job_description:
-            parts = job_description.split("Your Expertise:")
-            if len(parts) > 1:
-                expertise_section = (
-                    parts[1].split("Your Location:")[0]
-                    if "Your Location:" in parts[1]
-                    else parts[1]
-                )
-                jobqualifications = expertise_section.strip()
-
-                # Extraire l'expérience si mentionnée
-                experience_match = re.search(
-                    r"(\d+\+?)\s*years?\s*of\s*experience",
-                    jobqualifications,
-                    re.IGNORECASE,
-                )
-                if experience_match:
-                    jobexperience = experience_match.group(0)
-
         # === Salaire ===
-        salary_range = ""
         pay_range_elem = tree.css_first("div.pay-range")
-        if pay_range_elem:
-            spans = pay_range_elem.css("span")
-            if len(spans) >= 2:
-                salary_range = (
-                    f"{spans[0].text(strip=True)}-{spans[-1].text(strip=True)}"
-                )
-            else:
-                salary_range = pay_range_elem.text(strip=True).replace("—", "-")
+        pay_range = pay_range_elem.text() if pay_range_elem else ""
 
         # === Work Mode (Remote/Hybrid/On-site) ===
         workmode = ""
@@ -155,42 +123,19 @@ class Airbnb(BaseScraper):
 
         # === Niche / Département ===
         jobniche = ""
-        if "AirCover" in jobposition:
-            jobniche = "Insurance/Program Management"
-
-        # === Niveau d'expérience (déduit) ===
-        experiencelevel = ""
-        if jobexperience:
-            if re.search(r"1[0-9]\+|12\+", jobexperience):
-                experiencelevel = "Senior"
-            elif re.search(r"[5-9]\+", jobexperience):
-                experiencelevel = "Mid-level"
-            elif re.search(r"[0-3]\+|entry", jobexperience, re.IGNORECASE):
-                experiencelevel = "Entry-level"
 
         job_dict = {
             "jobid": job_id,
             "jobposition": jobposition,
-            "jobdescription": job_description[:8000],  # limite DB classique
-            "jobqualifications": jobqualifications,
-            "jobexperience": jobexperience,
-            "jobpattern": "",
-            "jobsalary": salary_range,
+            "jobdescription": job_description,
+            "jobpattern": workmode,
+            "jobsalary": pay_range,
             "jobniche": jobniche,
             "jobcountry": country,
-            "jobcity": city,
-            "jobstate": state,
+            "jobaddress": f"{city} {state}".strip(),
             "joblocation": location_raw,
-            "contracttype": "Full-time",
-            "workmode": workmode,
-            "jobtype": "Full-time",
-            "experiencelevel": experiencelevel,
-            "organization": "Airbnb",
-            "company": "Airbnb",
-            "publisheddate": "",
             "scrapedsource": position_link,
             "companyid": self.companyid,
-            "companyname": self.name,
         }
 
         return job_dict

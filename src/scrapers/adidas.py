@@ -1,8 +1,6 @@
 from datetime import datetime
 from urllib.parse import urljoin
-import json
 from xml.etree import ElementTree as ET
-import re
 
 import cloudscraper
 from selectolax.parser import HTMLParser
@@ -11,12 +9,13 @@ from src.scrapers.base.base_scraper import BaseScraper
 
 
 class Adidas(BaseScraper):
-    def __init__(self) -> None:
+    def __init__(self, save: bool, companyid: int) -> None:
         super().__init__(
             name="Adidas",
             link="https://careers.adidas-group.com/jobs",
             domain="https://careers.adidas-group.com",
-            companyid=77,
+            companyid=companyid,
+            save=save
         )
 
     def _get_html_adidas(self, url: str) -> str:
@@ -44,6 +43,8 @@ class Adidas(BaseScraper):
             position_link = urljoin(self.domain, href)
             position_links.append(position_link)
 
+        print(f"TOTAL JOBS - {len(position_links)}")
+
         # On enlève les doublons en conservant l'ordre
         return list(dict.fromkeys(position_links))
 
@@ -60,14 +61,6 @@ class Adidas(BaseScraper):
         jobdescription = (
             desc_el.text(strip=True, separator=" ") if desc_el else ""
         )
-
-        # Experience : on mappe les formats "x-y years" en gardant la dernière année (y years)
-        jobexperience = ""
-        text_lower = (jobdescription or "").lower()
-        range_match = re.search(r"(\d+)\s*-\s*(\d+)\s+years", text_lower)
-        if range_match:
-            last_year = range_match.group(2)
-            jobexperience = f"{last_year} years"
 
         # Localisation (ville / état / pays)
         city_el = soup.css_first('span[data-careersite-propertyid="city"]')
@@ -101,8 +94,10 @@ class Adidas(BaseScraper):
         parts = [p for p in [city, state, country] if p]
         jobaddress = ", ".join(parts) if parts else ""
         jobcountry = country
+        jobaddress = jobaddress.replace(jobcountry, "")
 
-        jobniche = "Job"
+        jobniche = soup.css_first('span[data-careersite-propertyid="facility"]')
+        jobniche = jobniche.text(strip=True) if jobniche else ""
 
         # Données de base du job_dict
         job_dict = {
@@ -110,55 +105,10 @@ class Adidas(BaseScraper):
             "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": jobdescription,
-            "jobexperience": jobexperience,  
             "jobpattern": jobpattern,
-            "jobniche": jobniche,
             "jobcountry": jobcountry,
             "jobaddress": jobaddress,
+            "jobniche": jobniche,
             "scrapedsource": position_link,
         }
-
-        # Utiliser validate_data 
-        parsed = self.validate_data(job_dict)
-        job_dict["jobqualifications"] = parsed.jobqualifications
-        job_dict["jobexperience"] = parsed.jobexperience
-        job_dict["jobpattern"] = parsed.jobpattern
-        job_dict["jobsalary"] = parsed.jobsalary
-
         return job_dict
-
-"""
-if __name__ == "__main__":
-    scraper = Adidas()
-    positions = scraper.get_positions()
-    print(f"\nNombre de positions trouvées: {len(positions)}")
-
-    output_path = "adidas_jobs.json"
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write("[\n")
-        first = True
-
-        if positions:
-            for i, position_link in enumerate(positions, 1):
-                print(f"\nScraping [{i}/{len(positions)}]: {position_link}")
-                try:
-                    job_dict = scraper.get_position_details(position_link)
-                    print(json.dumps(job_dict, indent=2, ensure_ascii=False))
-
-                    if not first:
-                        f.write(",\n")
-                    f.write(json.dumps(job_dict, ensure_ascii=False, indent=2))
-                    f.flush()
-                    first = False
-                except Exception as e:
-                    print(f"Erreur lors du scraping de {position_link}: {e}")
-                    continue
-
-        f.write("\n]\n")
-        f.flush()
-
-    print("\nScraping terminé. Résultats écrits progressivement dans 'adidas_jobs.json'.")
-    
-"""
-
-

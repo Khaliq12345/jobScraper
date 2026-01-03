@@ -7,12 +7,13 @@ from src.scrapers.base.base_scraper import BaseScraper
 
 
 class ATT(BaseScraper):
-    def __init__(self) -> None:
+    def __init__(self, save: bool) -> None:
         super().__init__(
             name="AT&T",
             link="https://www.att.jobs/search-jobs",
             domain="https://www.att.jobs",
-            companyid=16
+            companyid=30,
+            save=save
         )
 
     def get_positions(self) -> list[str]:
@@ -79,6 +80,7 @@ class ATT(BaseScraper):
                     jobcountry = address.get("addressCountry", "")
                 if parts:
                     jobaddress = ", ".join(parts)
+        jobaddress = jobaddress.replace(jobcountry, "")
 
         jobdescription = ""
         if json_data:
@@ -120,6 +122,7 @@ class ATT(BaseScraper):
 
         job_dict = {
             "jobid": job_id if job_id else int(datetime.now().timestamp()),
+            "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": jobdescription,
             "jobpattern": jobpattern,
@@ -128,25 +131,3 @@ class ATT(BaseScraper):
             "scrapedsource": position_link
         }
         return job_dict
-
-
-# if __name__ == "__main__":
-#     scraper = ATT()
-#     positions = scraper.get_positions()
-#     print(f"\nNombre de positions trouvées: {len(positions)}")
-
-#     all_jobs = []
-#     if positions:
-#         for i, position_link in enumerate(positions, 1):
-#             print(f"Scraping [{i}/{len(positions)}]: {position_link}")
-#             try:
-#                 job_dict = scraper.get_position_details(position_link)
-#                 all_jobs.append(job_dict)
-#             except Exception as e:
-#                 print(f"Error scraping {position_link}: {e}")
-
-#     with open('att_jobs.json', 'w', encoding='utf-8') as f:
-#         json.dump(all_jobs, f, indent=4, ensure_ascii=False)
-    
-#     print(f"\nScraping complete. Saved {len(all_jobs)} jobs to 'att_jobs.json'.")
-

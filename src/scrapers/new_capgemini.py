@@ -1,3 +1,4 @@
+from country_named_entity_recognition import find_countries
 from time import sleep, time
 
 import httpx
@@ -7,16 +8,19 @@ from src.scrapers.base.base_scraper import BaseScraper
 
 
 class Capgemini(BaseScraper):
-    def __init__(self) -> None:
+    def __init__(self, save: bool) -> None:
         super().__init__(
             name="Capgemini",
             link="https://www.capgemini.com/wp-json/macs/v1/jobs?size=5000",
             domain="https://www.capgemini.com",
             companyid=47,
+            save=save
         )
+
 
     def get_positions(self) -> list[str]:
         response = httpx.get(f"{self.link}", timeout=60)
+        print(response)
         json_data = response.json()
 
         jobs = json_data["data"]
@@ -30,6 +34,16 @@ class Capgemini(BaseScraper):
         category = job["department"]
         country = job["location"]
         location = job["location"]
+
+        country_finder = find_countries(location)
+        jobcountry = ""
+        if country_finder:
+            country = country_finder[0][0].name
+            if location.endswith(country):
+                jobcountry = country
+
+
+
         job_description = HTMLParser(job["description"]).text()
         position_link = job["apply_job_url"]
         jobqualifications =  job["education_level"]
@@ -41,7 +55,7 @@ class Capgemini(BaseScraper):
             "jobposition": jobposition,
             "jobdescription": job_description,
             "jobniche": category,
-            "jobcountry": country,
+            "jobcountry": jobcountry,
             "jobaddress": location,
             "jobqualifications": jobqualifications,
             "jobexperience": jobexperience,

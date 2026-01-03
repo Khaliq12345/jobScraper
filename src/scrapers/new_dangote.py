@@ -1,9 +1,9 @@
+from country_named_entity_recognition import find_countries
 from time import sleep, time
 from urllib.parse import urljoin
 
 import requests
 from selectolax.parser import HTMLParser
-
 from src.scrapers.base.base_scraper import BaseScraper
 
 
@@ -49,19 +49,33 @@ class Dangote(BaseScraper):
         category = category.text(strip=True) if category else "" 
         location = soup.css_first('p[id="job-location"]')
         location = location.text(strip=True).replace("Location:", "") if location else ""
-        country = location
+        country_finder = find_countries(location)
+        jobcountry = ""
+        if country_finder:
+            country = country_finder[0][0].name
+            if location.endswith(country):
+                jobcountry = country
+
+
         job_description = soup.css_first('span[class="jobdescription"]')
-        job_description = job_description.text(strip=True) if job_description else ""
+        job_description = job_description.text(strip=True, separator=" ") if job_description else ""
+        years = self._extract_years_from_text(job_description)
+        jobexperience = ""
+        if years:
+            jobexperience = f"{years[0]}-years"
+        job_qualification = self._extract_qualifications(job_description)
 
         job_dict = {
             "jobid": int(time()),
             "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": job_description,
+            "jobqualification": job_qualification,
             "jobniche": category,
-            "jobcountry": country,
+            "jobcountry": jobcountry,
             "jobaddress": location,
             "scrapedsource": position_link,
+            "jobexperience": jobexperience,
             "parse_location": True
         }
         return job_dict

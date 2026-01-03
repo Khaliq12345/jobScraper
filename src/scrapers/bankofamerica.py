@@ -6,8 +6,14 @@ import re
 
 
 class BankOfAmerica(BaseScraper):
-    def __init__(self) -> None:
-        super().__init__(name="Bank of America", link="https://careers.bankofamerica.com/en-us/job-search", domain="https://careers.bankofamerica.com", companyid=16)
+    def __init__(self, save: bool) -> None:
+        super().__init__(
+            name="Bank of America", 
+            link="https://careers.bankofamerica.com/en-us/job-search",
+            domain="https://careers.bankofamerica.com",
+            companyid=33,
+            save=save
+        )
 
 
     def get_positions(self) -> list[str]:
@@ -92,17 +98,7 @@ class BankOfAmerica(BaseScraper):
 
         # Location
         jobaddress_elem = soup.css_first('span.js-primary-location')
-        jobaddress = jobaddress_elem.text(strip=True) if jobaddress_elem else ""
-        
-        jobcountry = ""
-        if jobaddress:
-             parts = jobaddress.split(',')
-             if len(parts) > 1:
-                 last_part = parts[-1].strip()
-                 if len(last_part) == 2 or last_part == "United States": 
-                     jobcountry = "USA"
-                 else:
-                     jobcountry = last_part
+        jobaddress = jobaddress_elem.text(strip=True) if jobaddress_elem else "" 
         
         # Niche / Department (data-jobfamily sur le bloc principal)
         jobniche = jd_body.attributes.get("data-jobfamily", "") if jd_body else ""
@@ -136,53 +132,8 @@ class BankOfAmerica(BaseScraper):
             "jobexperience": jobexperience,
             "jobniche": jobniche,
             "jobpattern": jobpattern,
-            "jobcountry": jobcountry,
+            "jobcountry": 'United States',
             "jobaddress": jobaddress,
             "scrapedsource": position_link
         }
-
-        # Appliquer la logique de validate_data 
-        parsed = self.validate_data(job_dict)
-        # On met à jour seulement les variables issues de validate_data
-        job_dict["jobqualifications"] = parsed.jobqualifications
-        job_dict["jobexperience"] = parsed.jobexperience
-        job_dict["jobpattern"] = parsed.jobpattern
-        job_dict["jobsalary"] = parsed.jobsalary
-
         return job_dict
-
-"""
-if __name__ == "__main__":
-    import json
-
-    scraper = BankOfAmerica()
-    positions = scraper.get_positions()
-    print(f"Found {len(positions)} positions")
-
-    # Écriture progressive dans le JSON pour voir les résultats au fur et à mesure
-    output_path = "bankofamerica_results.json"
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write("[\n")
-        first = True
-
-        for position in positions:
-            print(f"Scraping {position}")
-            try:
-                details = scraper.get_position_details(position)
-
-                if not first:
-                    f.write(",\n")
-                # JSON bien formaté pour chaque offre (indentation)
-                f.write(json.dumps(details, ensure_ascii=False, indent=2))
-                f.flush()  # On force l'écriture disque à chaque offre
-                first = False
-                print(f"Scraped job {details.get('jobid')}")
-            except Exception as e:
-                print(f"Error scraping {position}: {e}")
-                continue
-
-        f.write("\n]\n")
-        f.flush()
-
-    print(f"Saved results progressively to {output_path}")
-"""

@@ -5,8 +5,14 @@ from src.scrapers.base.base_scraper import BaseScraper
 
 
 class Google(BaseScraper):
-    def __init__(self) -> None:
-        super().__init__(name="Google", link="https://www.google.com/about/careers/applications/jobs/results/", domain="https://www.google.com", companyid=11)
+    def __init__(self, save: bool) -> None:
+        super().__init__(
+            save=save, 
+            name="Google", 
+            link="https://www.google.com/about/careers/applications/jobs/results/", 
+            domain="https://www.google.com", 
+            companyid=22
+        )
 
 
     def get_positions(self) -> list[str]:
@@ -46,46 +52,23 @@ class Google(BaseScraper):
         soup = HTMLParser(html)
 
         jobposition = soup.css_first("h2.p1N2lc")
-        jobposition = jobposition.text(strip=True) if jobposition else ""
+        jobposition = jobposition.text(strip=True) if jobposition else ""        
 
         # About the job
-        about_el = soup.css_first("div.aG5W3")
+        about_el = soup.css_first("div.DkhPwc")
         about_text = about_el.text(strip=True, separator=" ") if about_el else ""
-        if about_text.startswith("About the job"):
-            about_text = about_text.replace("About the job", "", 1).lstrip(" :\n\t")
 
-        # Responsibilities
-        responsibilities = []
-        for h3 in soup.css("h3"):
-            if h3.text(strip=True) == "Responsibilities":
-                ul = h3.next
-                while ul and getattr(ul, 'tag', None) != 'ul':
-                    ul = getattr(ul, 'next', None)
-                if ul:
-                    responsibilities = [li.text(strip=True) for li in ul.css('li')]
-                break
-        responsibilities_text = "Responsibilities: " + "; ".join(responsibilities) if responsibilities else ""
-
-        jobdescription = " ".join(filter(None, [about_text, responsibilities_text])).strip()
-
-        # Qualifications
-        quals = []
-        for h3 in soup.css("h3"):
-            title = h3.text(strip=True)
-            if "qualifications" in title.lower():
-                ul = h3.next
-                while ul and getattr(ul, 'tag', None) != 'ul':
-                    ul = getattr(ul, 'next', None)
-                if ul:
-                    quals.extend([li.text(strip=True) for li in ul.css('li')])
-        jobqualifications = "\n".join(quals)
+        # Location
+        location_el = soup.css_first('span[class="r0wTof "]')
+        country = location_el.text(strip=True) if location_el else ""
 
         job_dict = {
             "jobid": int(datetime.now().timestamp()),
+            "companyid": self.companyid,
             "jobposition": jobposition,
-            "jobdescription": jobdescription,
-            "jobqualifications": jobqualifications,
-            "scrapedsource": position_link
+            "scrapedsource": position_link,
+            "jobdescription": about_text,
+            "jobcountry": country
         }
         return job_dict
 

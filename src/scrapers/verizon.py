@@ -1,3 +1,4 @@
+from country_named_entity_recognition import find_countries
 from src.scrapers.base.base_scraper import BaseScraper
 from selectolax.parser import HTMLParser
 from urllib.parse import urljoin
@@ -13,7 +14,7 @@ class Verizon(BaseScraper):
             name="Verizon",
             link="https://mycareer.verizon.com/jobs/",
             domain="https://mycareer.verizon.com",
-            companyid=17
+            companyid=31
         )
         self.scraper = cloudscraper.create_scraper(
             browser={
@@ -121,29 +122,6 @@ class Verizon(BaseScraper):
         # Fallback: mappings textuels pour les cas sans chiffres explicites
         return self._extract_experience_from_keywords(desc_normalized)
     
-    def _extract_years_from_text(self, text: str) -> list[int]:
-        """
-        Extrait toutes les années d'expérience mentionnées dans le texte.
-        """
-        years_found = []
-        
-        # Pattern pour "X or more years"
-        pattern_or_more = r"(\d+)\s+or\s+more\s+years?"
-        for match in re.finditer(pattern_or_more, text):
-            years_found.append(int(match.group(1)))
-        
-        # Pattern pour "X years", "X+ years", "X-Y years"
-        pattern_standard = r"(\d+)(?:\s*[-–—]\s*(\d+))?(?:\+)?\s+years?"
-        for match in re.finditer(pattern_standard, text):
-            match_text = match.group(0)
-            # Éviter les doublons avec "or more"
-            if "or more" not in match_text:
-                first_year = int(match.group(1))
-                second_year = int(match.group(2)) if match.group(2) else None
-                years_found.append(max(first_year, second_year) if second_year else first_year)
-        
-        return years_found
-    
     def _format_experience(self, years: int) -> str:
         """
         Formate le nombre d'années en chaîne d'expérience standardisée.
@@ -174,12 +152,6 @@ class Verizon(BaseScraper):
                 return experience
         
         return "No Experience"
-
-    def _normalize_text(self, text: str) -> str:
-        """Normalise les caractères typographiques (apostrophes, tirets)"""
-        if not text:
-            return ""
-        return text.replace("'", "'").replace("'", "'").replace("–", "-").replace("—", "-").strip()
 
     def _extract_requirements_section(self, soup: HTMLParser) -> str:
         """
@@ -215,72 +187,6 @@ class Verizon(BaseScraper):
 
         return "\n".join(requirements_text)
 
-    def _extract_qualifications(self, jobdescription: str) -> str:
-        """
-        Extrait les qualifications requises depuis la description du poste.
-        
-        Recherche d'abord directement dans static.qualifications, puis utilise des mappings
-        personnalisés pour les valeurs qui ne sont pas dans la liste.
-        """
-        if not jobdescription:
-            return "General"
-        
-        # 1. Normalisation importante (apostrophes courbes vs droites)
-        desc_normalized = self._normalize_text(jobdescription).lower()
-        
-        # 2. Recherche d'abord dans static.qualifications
-        for qualification in static.qualifications:
-            qual_lower = self._normalize_text(qualification).lower()
-            if qual_lower in desc_normalized:
-                return qualification
-            
-            # Recherche flexible sur la partie principale
-            main_part = qual_lower.split("(")[0].strip()
-            # Nettoyage supplémentaire pour "Bachelor's" -> "bachelor
-            main_keyword = main_part.replace("'s", "").replace("'s", "").strip()
-            
-            if len(main_keyword) > 3 and f" {main_keyword} " in f" {desc_normalized} ":
-                return qualification
-        
-        # 3. Mappings personnalisés simplifiés (seulement High School, Associate, Bachelor)
-        custom_mappings = [
-            # High School variations
-            ("high school diploma", "High School (S.S.C.E)"),
-            ("high school diploma or ged", "High School (S.S.C.E)"),
-            ("high school diploma or g.e.d", "High School (S.S.C.E)"),
-            ("ged", "High School (S.S.C.E)"),
-            ("g.e.d", "High School (S.S.C.E)"),
-            ("secondary school", "High School (S.S.C.E)"),
-            ("high school certificate", "High School (S.S.C.E)"),
-            ("ssce", "High School (S.S.C.E)"),
-            
-            # Associate variations
-            ("associate degree", "Associate"),
-            ("associates degree", "Associate"),
-            ("associate's", "Associate"),
-            ("associate", "Associate"),
-            
-            # Bachelor variations
-            ("bachelor's", "Bachelor's (B.A.)"), 
-            ("bachelors", "Bachelor's (B.A.)"),
-            ("bachelor's degree", "Bachelor's (B.A.)"),
-            ("bachelor degree", "Bachelor's (B.A.)"),
-            ("bachelor of arts", "Bachelor's (B.A.)"),
-            ("bachelor of science", "Bachelor's (B.Sc.)"),
-            ("bachelor of commerce", "Bachelor's (B.Com.)"),
-            ("bachelor of engineering", "Bachelor's (B.Eng.)"),
-            ("bachelor of education", "Bachelor's (B.Ed.)"),
-            ("bachelor of laws", "Bachelor's (LLB)"),
-        ]
-        
-        for keyword, qualification in custom_mappings:
-            if keyword in desc_normalized:
-                # Vérifier que la qualification existe dans static.qualifications
-                if qualification in static.qualifications:
-                    return qualification
-        
-        return "General"
-
     def get_position_details(self, position_link: str) -> dict:
 
         html = self.get_html(position_link)
@@ -300,7 +206,13 @@ class Verizon(BaseScraper):
         location_elem = soup.css_first(".locations")
         location_text = location_elem.text(strip=True) if location_elem else ""
         jobaddress = location_text
-        jobcountry = location_text
+        country_finder = find_countries(location_text)
+        if not country_finder:
+            jobcountry = "United States"
+        if country_finder:
+            country = country_finder[0][0].name
+            if location_text.endswith(country):
+                jobcountry = country
 
         # Description (using .cms-content as requested)
         article = soup.css_first("article.cms-content")

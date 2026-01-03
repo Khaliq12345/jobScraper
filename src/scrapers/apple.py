@@ -1,69 +1,107 @@
 from datetime import datetime
-from urllib.parse import urljoin
-from selectolax.parser import HTMLParser
+import httpx
 from src.scrapers.base.base_scraper import BaseScraper
 
+cookies = {
+    'jobs': '07158c1e454930789e2005e0f1ec2e71',
+    's_fid': '3875E9C231083124-3F2B77FEFF6DFC36',
+    's_vi': '[CS]v1|349E1ED06F2F00C8-4000056E399D7496[CE]',
+    'aa_lastvisit': '1766570786800',
+    's_getNewRepeat': '1766571047006-Repeat',
+    's_vnum_n2_us': '1%7C1',
+    'cs-id': '573f1c5b-5cc5-4509-b33c-385d03c51caa',
+    'AWSALBAPP-0': 'AAAAAAAAAAD5dqOcO+CWjL6b/EkRuOfaibcKYjl4EUToZpjJUVPpFWzXV+EXyrKn4GnreYEzj+PPCI/j8s0LbrlncAl69rqICFIMMOkTtzWIsS1o+VdSVZDsGEQ+YpeqqrOcA7OU1xlYyPw=',
+    'AWSALBAPP-1': '_remove_',
+    'AWSALBAPP-2': '_remove_',
+    'AWSALBAPP-3': '_remove_',
+    'geo': 'BJ',
+    'gpv': 'jobs%3Aen-us%3Asearch%3Asearch',
+    's_sq': '%5B%5BB%5D%5D',
+    's_cc': 'true',
+    'jssid': 's%3A1_bszM3hg9fLXX4m33WcQP8MG32fn8ve.dJ3eckSv%2F6nDJPOAZ7lJ7KId0smHOLuXtYXb043PEIQ',
+}
+
+headers = {
+    'User-Agent': 'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0',
+    'Accept': '*/*',
+    'Accept-Language': 'en-US,en;q=0.5',
+    'Referer': 'https://jobs.apple.com/en-us/search',
+    'locale': 'en_US',
+    'browserLocale': 'en-us',
+    'Content-Type': 'application/json',
+    'X-Apple-CSRF-Token': '39aa703677ab37a774cb68736d3c2e157b03d49aa1a94b431ae98548697cf5a2',
+    'x-b3-traceid': '3093577c-c1e1-433e-ab32-b5d719591474',
+    'Origin': 'https://jobs.apple.com',
+    'Connection': 'keep-alive', 
+    'Sec-Fetch-Dest': 'empty',
+    'Sec-Fetch-Mode': 'cors',
+    'Sec-Fetch-Site': 'same-origin',
+    'Priority': 'u=4',
+}
+
 class Apple(BaseScraper):
-    def __init__(self) -> None:
-        super().__init__(name = "Apple", link="https://jobs.apple.com/en-us/search", companyid=99, domain="https://jobs.apple.com")
+    def __init__(self, save: bool) -> None:
+        super().__init__(name = "Apple", link="https://jobs.apple.com/en-us/search", companyid=21, domain="https://jobs.apple.com", save=save)
 
 
     def get_positions(self) -> list[str]:
         position_links = []
-
         page = 1
         while True:
-            print(f"Page ==> {page}")
-            html = self.get_html(f"{self.link}?page={page}")
-            soup = HTMLParser(html)
+            print(f'Page - {page}')
+            payload = {
+                'query': '',
+                'filters': {},
+                'page': page,
+                'locale': 'en-us',
+                'sort': '',
+                'format': {
+                    'longDate': 'MMMM D, YYYY',
+                    'mediumDate': 'MMM D, YYYY',
+                },
+            }
 
-            positions = soup.css('ul[id="search-job-list"] li[role="listitem"]')
-            print(f"ALL JOBS - {len(positions)}")
-            if len(positions) == 0:
-                print("NO MORE NEW PAGE")
+            response = httpx.post('https://jobs.apple.com/api/v1/search', cookies=cookies, headers=headers, json=payload)
+            response.raise_for_status()
+            json_data = response.json()
+
+            job_data = json_data['res']
+            jobs = job_data['searchResults']
+            for job in jobs:
+                position_links.append(f"https://jobs.apple.com/api/v1/jobDetails/{job['positionId']}?locale=en-us")
+
+            if len(jobs) == 0:
                 break
 
-            for position in positions:
-                position_link = position.css_first("a")
-                if not position_link:
-                    continue
-                position_link = position_link.attributes.get("href")
-                position_link = urljoin(self.domain, position_link) if self.domain else position_link
-                position_links.append(position_link) if position_link not in position_links else None
-            
             page += 1
-            if page == 3:
-                break
-        print(f"ALL JOBS NO DUPLICATES - {len(position_links)}")
         return position_links
 
 
-    def get_position_details(self, position_link: str) -> dict:
-        html = self.get_html(position_link)
 
-        soup = HTMLParser(html)
-        print(soup.text())
-        jobposition = soup.css_first('h1[id="jobdetails-postingtitle"]')
-        jobposition = jobposition.text(strip=True) if jobposition else ""
-        category = soup.css_first('label[id="jobdetails-teamname"]')
-        category = category.text(strip=True) if category else ""
-        country = soup.css_first('label[id="jobdetails-joblocation"]')
-        country = country.text(strip=True) if country else ""
-        job_description = soup.css_first('div[id="jobdetails-jobdetails-jobdescription-content-row"]')
-        job_description = job_description.text(strip=True, separator=" ") if job_description else ""
-        jobqualifications_1 = soup.css_first('div[id="jobdetails-minimumqualifications"]')
-        jobqualifications_1 = jobqualifications_1.text(strip=True, separator=" ") if jobqualifications_1 else ""
-        jobqualifications_2 = soup.css_first('div[id="jobdetails-preferredqualifications"]')
-        jobqualifications_2 = jobqualifications_2.text(strip=True, separator=" ") if jobqualifications_2 else ""
-        jobqualifications = f"{jobqualifications_1} {jobqualifications_2}"
+    def get_position_details(self, position_link: str) -> dict:
+        response = httpx.get(position_link)
+        response.raise_for_status()
+        json_data = response.json()
+
+        position_data = json_data['res']
+        jobposition = position_data['postingTitle']
+        category = position_data['teamNames'][0]
+        location = position_data['locations'][0]
+        job_address = f"{location.get('city', '')} {location.get('cityProvince', '')}".strip()
+        country = location['countryName']
+        job_description = f"{position_data['jobSummary']} {position_data['description']} {position_data['preferredQualifications']} {position_data['minimumQualifications']}"
+        job_type = position_data['jobType']
+        job_link = f"https://jobs.apple.com/en-us/details/{position_data['jobNumber']}/{position_data['transformedPostingTitle']}"
 
         job_dict = {
             "jobid": int(datetime.now().timestamp()),
+            "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": job_description,
             "jobniche": category,
             "jobcountry": country,
-            "scrapedsource": position_link,
-            "jobqualifications": jobqualifications
+            "jobaddress": job_address,
+            "jobpattern": job_type,
+            "scrapedsource": job_link,
         }
         return job_dict
