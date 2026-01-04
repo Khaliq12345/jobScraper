@@ -2,7 +2,7 @@ import sys
 sys.path.append('.')
 
 from sqlmodel import Session, create_engine, select
-from src.storage.model import jobs, scraperStatus
+from src.storage.model import jobs, scraperStatus, Users
 from config.config import DB_USER, DB_PASSWORD, DB_HOST, DB_DATABASE
 
 
@@ -16,6 +16,8 @@ class Database:
     def create_db_and_tables(self):
         jobs.metadata.create_all(self.engine) 
         scraperStatus.metadata.create_all(self.engine2)
+        Users.metadata.create_all(self.engine2)
+
 
     def get_jobs(self) -> list[dict]:
         with Session(bind=self.engine) as session:
@@ -32,7 +34,7 @@ class Database:
             session.commit()
         print("JOB SENT")
 
-    # ------------------------------------------------
+    # -----------------PROCESSES-------------------------------
     def update_status(self, info: scraperStatus) -> None:
         with Session(bind=self.engine2) as session:
             stmt = select(scraperStatus).where(scraperStatus.platform == info.platform)
@@ -78,6 +80,34 @@ class Database:
                 process.status = status
                 session.commit()
 
+    def delete_process(self, process_id: int) -> bool:
+        """Delete a process record from the database"""
+        with Session(bind=self.engine2) as session:
+            stmt = select(scraperStatus).where(scraperStatus.process_id == process_id)
+            process = session.exec(stmt).first()
+            if process:
+                session.delete(process)
+                session.commit()
+                return True
+            return False
+
+
+    #---------------------------USERS-------------------------------
+    def get_user(self, username: str) -> None | Users:
+        with Session(bind=self.engine2) as session:
+            stmt = select(Users).where(Users.username == username)
+            return session.exec(stmt).first()
+
+    def update_user(self, username: str, password: str) -> None | Users:
+        with Session(bind=self.engine2) as session:
+            stmt = select(Users).where(Users.username == username)
+            user = session.exec(stmt).first()
+            if not user:
+                return None
+            user.password = password
+            session.commit()
+            session.refresh(user)  # Add this
+            return user  # Add this
             
 
 

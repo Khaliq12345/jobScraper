@@ -17,8 +17,10 @@ dependencies = [
     "pydantic>=2.12.5",
     "pymysql>=1.1.2",
     "python-dotenv>=1.2.1",
+    "python-fasthtml>=0.12.37",
     "requests>=2.32.5",
     "selectolax>=0.4.6",
     "sqlmodel>=0.0.27",
-    "streamlit>=1.52.2",
+    "streamlit-cookies-manager-v2>=0.3.1",
+    "streamlit[auth]>=1.52.2",
 ]

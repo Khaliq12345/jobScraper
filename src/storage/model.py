@@ -31,3 +31,9 @@ class scraperStatus(SQLModel, table=True):
     status: str
     last_updated: str
     process_id: int = 0
+
+class Users(SQLModel, table=True):
+    __table_args__ = {'extend_existing': True}
+    id: int = Field(default=None, primary_key=True)  # Auto-incrementing primary key
+    username: str
+    password: str
