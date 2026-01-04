@@ -93,6 +93,12 @@ class Database:
 
 
     #---------------------------USERS-------------------------------
+    def create_user(self, username: str, password: str) -> None:
+        with Session(bind=self.engine2) as session:
+            session.add(Users(username=username, password=password))
+            session.commit()
+
+
     def get_user(self, username: str) -> None | Users:
         with Session(bind=self.engine2) as session:
             stmt = select(Users).where(Users.username == username)

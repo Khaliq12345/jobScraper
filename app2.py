@@ -441,41 +441,6 @@ app, rt = fast_app(
     # live=True
 )
 
-count = 0
-@app.get("/test")
-def home():
-    return Title("Scraper Dashboard"), Div(cls="d")(
-        # Your content here
-        Form(method="post", hx_post="/increment", hx_target="#pwd-msg", hx_swap="outerHTML", hx_on__after_request="console.log('Form submitted'); this.reset()")(
-            Div(cls="form-group")(
-                Label("Current Password"),
-                Input(type="password", name="current_password", required=True)
-            ),
-            Div(cls="form-group")(
-                Label("New Password"),
-                Input(type="password", name="new_password", required=True)
-            ),
-            Div(cls="form-group")(
-                Label("Confirm Password"),
-                Input(type="password", name="confirm_password", required=True)
-            ),
-            Button("Update Password", type="submit")
-        ),
-        Details(
-            Summary("🔑 Change Password")
-        ),
-        Div(id="pwd-msg"),
-        Hr(),
-        A(Button("Logout"), href="/logout")
-    )
-
-@app.post("/increment")
-def increment(current_password: str):
-    print("incrementing")
-    global count
-    count += 1
-    return P(f"Count is set to {count} | current_password  is - {current_password}", id="pwd-msg")
-
 # Login page
 @rt('/')
 def get(session):
@@ -491,7 +456,7 @@ def get(session):
                     H1("🔐 Login"),
                     Form(action="/login", method="post")(
                         Div(cls="form-group")(
-                            Label("Username", fr="username"),
+                            Label("Username/Email", fr="username"),
                             Input(type="text", name="username", id="username", required=True)
                         ),
                         Div(cls="form-group")(
@@ -524,7 +489,7 @@ def post(session, username: str, password: str):
                     Div(cls="alert alert-error")("😕 Username or password incorrect"),
                     Form(action="/login", method="post")(
                         Div(cls="form-group")(
-                            Label("Username", fr="username"),
+                            Label("Username/Email", fr="username"),
                             Input(type="text", name="username", id="username", required=True, value=username)
                         ),
                         Div(cls="form-group")(
@@ -537,6 +502,56 @@ def post(session, username: str, password: str):
             )
         )
     )
+
+@rt('/signup')
+def get(session):
+    # # Check authentication
+    # if not session.get('username') or check_session_timeout(session):
+    #     return RedirectResponse('/')
+
+    return (
+        Title("Signup - Scraper App"),
+        Body(
+            Div(id="signup_info"),
+            Div(id="login-container", cls="login-container")(
+                Div(cls="card")(
+                    H1("🔐 Signup"),
+                    Form(action="/signup", hx_post="/signup", hx_target="#login-container", hx_swap="outerHTML")(
+                        Div(cls="form-group")(
+                            Label("Username/Email", fr="username"),
+                            Input(type="text", name="username", id="username", required=True)
+                        ),
+                        Div(cls="form-group")(
+                            Label("Password", fr="password"),
+                            Input(type="password", name="password", id="password", required=True)
+                        ),
+                        Div(cls="form-group")(
+                            Label("Confirm Password", fr="confirm_password"),
+                            Input(type="password", name="confirm_password", id="confirm_password", required=True)
+                        ),
+                        Button("Signup", type="submit")
+                    )
+                )
+            )
+        )
+    )
+
+@rt('/signup')
+def post(session, username: str, password: str, confirm_password: str):
+    if not (password == confirm_password):
+        return Div(id="login-container", cls="alert alert-error")("Password must match")
+
+    try:
+        db.create_user(username, hash_password(password))
+    except Exception as e:
+        print(f"Error - {e}")
+        return Div(id="login-container", cls="alert alert-error")("Password must match")
+    return Div(id="login-container", cls="alert alert-success")(
+        ("Account Created. Login now"),
+        Hr(),
+        A(Button("Login"), href="/")
+    )
+
 
 @rt('/logout')
 def get(session):
