@@ -229,7 +229,7 @@ class BaseScraper(Database):
                 try:
                     job_details = self.get_position_details(position)
                     parsed_position = self.validate_data(job_details)
-                    print(parsed_position)
+                    print(position)
                     
                     if not parsed_position.jobposition:
                         continue
