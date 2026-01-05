@@ -40,7 +40,23 @@ def check_session_timeout(session):
 
 # Styles
 css = Style("""
-/* Base Styles */
+/* Checkbox override - place at the END of your CSS file */
+.form-group input[type="checkbox"] {
+    width: 18px !important;
+    height: 18px !important;
+    padding: 0 !important;
+    margin: 0 8px 0 0 !important;
+    cursor: pointer;
+    accent-color: #0066cc;
+    vertical-align: middle;
+}
+
+@media (prefers-color-scheme: dark) {
+    .form-group input[type="checkbox"] {
+        accent-color: #4d9fff;
+    }
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     margin: 0;
@@ -766,8 +782,6 @@ def get(session):
         Div(cls="main-content")(
             Div(cls="container")( 
                 H1("Myworkdayjobs Scraper 👋"),
-
-                # Scraper form
                 Div(id="scraper-error"),
                 Div(cls="card")(
                     H2("Start New Scraper"),
@@ -780,18 +794,12 @@ def get(session):
                             Label("Job Server ID"),
                             Input(type="number", name="jobserver_id", required=True)
                         ),
-                        Div(cls="form-group")(
-                            Label(
-                                Input(type="checkbox", name="save_to_db", value="true"),
-                                " Save to DB"
-                            )
+                        Label(
+                            Input(type="checkbox", name="save_to_db", value="true"),
+                            " Save to DB",
                         ),
-                        Div(cls="form-group")(
-                            Label(
-                                Input(type="checkbox", name="is_test", value="true"),
-                                " Perform Test run"
-                            )
-                        ),
+                        Label(Input(type="checkbox", name="is_test", value="true"), "Perform Test run"),
+
                         Button("Submit", type="submit")
                     )
                 ),
