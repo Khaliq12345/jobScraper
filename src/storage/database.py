@@ -1,7 +1,7 @@
 import sys
 sys.path.append('.')
 
-from sqlmodel import Session, create_engine, select
+from sqlmodel import Session, create_engine, delete, select
 from src.storage.model import jobs, scraperStatus, Users
 from config.config import DB_USER, DB_PASSWORD, DB_HOST, DB_DATABASE
 
@@ -33,6 +33,17 @@ class Database:
             session.add(job)
             session.commit()
         print("JOB SENT")
+
+
+    def delete_jobs_by_company(self, company_id: int) -> int:
+        """Delete all jobs for a specific company. Returns count of deleted jobs."""
+        with Session(bind=self.engine) as session:
+            stmt = delete(jobs).where(jobs.companyid == company_id)
+            result = session.exec(stmt)
+            session.commit()
+            deleted_count = result.rowcount
+            print(f"Deleted {deleted_count} jobs for company_id: {company_id}")
+            return deleted_count
 
     # -----------------PROCESSES-------------------------------
     def update_status(self, info: scraperStatus) -> None:

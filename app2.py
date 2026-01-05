@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from fasthtml.common import fast_app, Script, Div, P, RedirectResponse, Style, Title, Body, Form, H1, Label, Input, serve, Button, Select, Option, H3, Hr, Details, Summary, A, H2, Span
 from src.scrapers.workdayjobs import Workday
 from src.storage.database import Database
+from src.storage.model import scraperStatus
 
 # Initialize database
 db = Database()
@@ -61,11 +62,13 @@ body {
     left: 0;
     top: 0;
     bottom: 0;
-    width: 400px;
+    width: 250px;
     background: white;
     padding: 20px;
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
     overflow-y: auto;
+    transition: transform 0.3s ease;
+    z-index: 1000;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -75,9 +78,77 @@ body {
     }
 }
 
+/* Mobile: Hide sidebar off-screen by default */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        width: 280px;
+    }
+    
+    .sidebar.active {
+        transform: translateX(0);
+    }
+    
+    /* Overlay when sidebar is open */
+    body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+        z-index: 999;
+    }
+    
+    body.sidebar-open::before {
+        opacity: 1;
+        pointer-events: auto;
+    }
+}
+
 .main-content {
     margin-left: 290px;
     padding: 20px;
+    transition: margin-left 0.3s ease;
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        margin-left: 0;
+        padding: 60px 15px 15px;
+    }
+}
+
+/* Mobile menu toggle button */
+.menu-toggle {
+    display: none;
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 1001;
+    background: #0066cc;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 18px;
+}
+
+@media (max-width: 768px) {
+    .menu-toggle {
+        display: block;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .menu-toggle {
+        background: #4d9fff;
+    }
 }
 
 .container {
@@ -86,9 +157,23 @@ body {
     padding: 20px;
 }
 
+@media (max-width: 768px) {
+    .container {
+        padding: 15px;
+    }
+}
+
 .login-container {
     max-width: 400px;
     margin: 100px auto;
+    padding: 0 20px;
+}
+
+@media (max-width: 480px) {
+    .login-container {
+        margin: 50px auto;
+        max-width: 100%;
+    }
 }
 
 /* Cards */
@@ -98,6 +183,13 @@ body {
     margin: 20px 0;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+@media (max-width: 768px) {
+    .card {
+        padding: 16px;
+        margin: 15px 0;
+    }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -217,6 +309,13 @@ button:disabled {
     margin: 10px 20px 10px 0;
 }
 
+@media (max-width: 768px) {
+    .metric {
+        display: block;
+        margin: 15px 0;
+    }
+}
+
 .metric-label {
     font-size: 12px;
     color: #666;
@@ -234,6 +333,12 @@ button:disabled {
     font-size: 28px;
     font-weight: bold;
     color: #333;
+}
+
+@media (max-width: 768px) {
+    .metric-value {
+        font-size: 24px;
+    }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -430,6 +535,54 @@ a {
 a:hover {
     opacity: 0.8;
 }
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+@media (max-width: 480px) {
+    .pagination {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .pagination button {
+        width: 100%;
+    }
+}
+
+.pagination button {
+    padding: 10px 20px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.pagination button:hover:not(:disabled) {
+    background: #5568d3;
+    transform: translateY(-1px);
+}
+
+.pagination button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.page-info {
+    color: #666;
+    font-weight: 500;
+}
 """)
 
 # Create FastHTML app with sessions
@@ -579,7 +732,6 @@ def get(session):
     time_since_activity = datetime.now() - last_activity
     minutes_until_timeout = SESSION_TIMEOUT_MINUTES - int(time_since_activity.total_seconds() / 60)
 
-    all_progress = db.get_all_process()
 
     return (
         Title("Scraper Dashboard"),
@@ -611,9 +763,8 @@ def get(session):
             A(Button("Logout"), href="/logout")
         ),
 
-        # Main content
         Div(cls="main-content")(
-            Div(cls="container")(
+            Div(cls="container")( 
                 H1("Myworkdayjobs Scraper 👋"),
 
                 # Scraper form
@@ -648,7 +799,7 @@ def get(session):
                 # Progress display
                 Div(cls="card", id="progress-section")(
                     H2("Scraper Progress"),
-                    get_progress_content(all_progress)
+                    get_progress_content()
                 )
             )
         ),
@@ -672,7 +823,8 @@ def get(session):
         """)
         )
 
-def get_progress_content(all_progress, status_filter="all"):
+def get_progress_content(status_filter="all"):
+    all_progress = db.get_all_process()
     if not all_progress:
         return P(cls="alert alert-info")("No progress data available yet.")
 
@@ -696,55 +848,80 @@ def get_progress_content(all_progress, status_filter="all"):
             hx_target="#progress-list",
             hx_include="[name='status_filter']"
         ),
+        Hr(),
         Div(id="progress-list")(
             *[process_card(data) for data in filtered] if filtered else P(cls="alert alert-info")(f"No sites with status: {status_filter}")
-        )
+        ),
     )
 
 def process_card(data):
     progress = data.current / data.total if data.total > 0 else 0
     badge_class = f"badge-{data.status}"
-
+    
     return Div(cls="expander")(
         Div(cls="expander-header")(
             f"📊 {data.platform} ",
             Span(cls=f"badge {badge_class}")(data.status.upper())
         ),
         Div(cls="expander-content")(
-            Div(cls="progress-bar")(
-                Div(cls="progress-fill", style=f"width: {progress*100}%")
-            ),
+            # Main visible metrics
             Div(
                 Div(cls="metric")(
-                    Div(cls="metric-label")("Progress"),
-                    Div(cls="metric-value")(f"{data.current}/{data.total}")
+                    Div(cls="metric-label")("Platform"),
+                    Div(cls="metric-value")(str(data.platform))
                 ),
                 Div(cls="metric")(
-                    Div(cls="metric-label")("Completion"),
-                    Div(cls="metric-value")(f"{progress*100:.1f}%")
+                    Div(cls="metric-label")("ID"),
+                    Div(cls="metric-value")(str(data.id))
                 ),
                 Div(cls="metric")(
-                    Div(cls="metric-label")("✅ Successful"),
-                    Div(cls="metric-value")(str(data.successful))
-                ),
-                Div(cls="metric")(
-                    Div(cls="metric-label")("❌ Failed"),
-                    Div(cls="metric-value")(str(data.failed))
+                    Div(cls="metric-label")("URL"),
+                    Div(cls="metric-value", style="font-size: 14px; word-break: break-all;")(
+                        str(data.platform_url)
+                    )
                 ),
             ),
-            Div(
-                P(cls="caption")(f"Last updated: {data.last_updated}"),
-                P(cls="caption")(f"Process ID: {data.process_id}"),
+            
+            # Nested expander for detailed metrics
+            Details(
+                Summary("📈 View Details"),
+                Div(style="padding: 16px 0;")(
+                    Div(cls="progress-bar")(
+                        Div(cls="progress-fill", style=f"width: {progress*100}%")
+                    ),
+                    Div(
+                        Div(cls="metric")(
+                            Div(cls="metric-label")("Progress"),
+                            Div(cls="metric-value")(f"{data.current}/{data.total}")
+                        ),
+                        Div(cls="metric")(
+                            Div(cls="metric-label")("Completion"),
+                            Div(cls="metric-value")(f"{progress*100:.1f}%")
+                        ),
+                        Div(cls="metric")(
+                            Div(cls="metric-label")("✅ Successful"),
+                            Div(cls="metric-value")(str(data.successful))
+                        ),
+                        Div(cls="metric")(
+                            Div(cls="metric-label")("❌ Failed"),
+                            Div(cls="metric-value")(str(data.failed))
+                        ),
+                    ),
+                    P(cls="caption")(f"Last updated: {data.last_updated}"),
+                    P(cls="caption")(f"Process ID: {data.process_id}")
+                )
+            ),
+            
+            # Action buttons
+            Div(style="margin-top: 16px; display: flex; gap: 10px; flex-wrap: wrap;")(
                 Button("🛑 Stop", cls="danger", 
                        hx_post=f"/stop-process/{data.platform}",
                        hx_target="#progress-section",
-                       hx_swap="innerHTML") if data.status == "running" and data.process_id > 0 else None
-            ),
-            Hr(),
-            Button("🛑 Delete", cls="delete", 
-                   hx_get=f"/delete-process/{data.process_id}",
-                   hx_target="#progress-section",
-                   hx_swap="innerHTML"
+                       hx_swap="innerHTML") if data.status == "running" and data.process_id > 0 else None,
+                Button("🗑️ Delete", cls="danger", 
+                       hx_get=f"/delete-process/{data.process_id}",
+                       hx_target="#progress-section",
+                       hx_swap="innerHTML")
             ),
             Hr()
         )
@@ -793,6 +970,8 @@ def post(session, current_password: str, new_password: str, confirm_password: st
 
 def run_scraper_task(save_to_db, jobserver_id, platform_link, name, is_test):
     # This now exists in the global scope and can be pickled
+
+    db.delete_jobs_by_company(jobserver_id)
     scraper = Workday(
         save=save_to_db == "true",
         companyid=int(jobserver_id),
@@ -830,7 +1009,13 @@ def post(session, platform_link: str, jobserver_id: int,
         if not p.pid:
             print("process ID is null")
             return Div(cls="alert alert-error", id="scraper-error")("Process ID is null")
-        db.update_process_id(name, p.pid)
+        db.update_status(scraperStatus(
+            id=jobserver_id,
+            platform=name,
+            platform_url=platform_link,
+            status='running',
+            process_id=p.pid
+        ))
     except Exception as e:
         print(f"Error updating process ID: {e}")
 
@@ -862,10 +1047,9 @@ def post(session, platform: str):
     except Exception as e:
         print(f"Error stopping process: {e}")
 
-    all_progress = db.get_all_process()
     return Div(
         H2("Scraper Progress"),
-        get_progress_content(all_progress)
+        get_progress_content()
     )
 
 
@@ -884,10 +1068,9 @@ def get(session, process_id: int):
     except Exception as e:
         print(f"Error stopping process: {e}")
 
-    all_progress = db.get_all_process()
     return Div(
         H2("Scraper Progress"),
-        get_progress_content(all_progress)
+        get_progress_content()
     )
 
 @rt('/refresh')
@@ -895,10 +1078,9 @@ def get(session):
     # Check authentication
     if not session.get('username') or check_session_timeout(session):
         return RedirectResponse('/')
-    all_progress = db.get_all_process()
     return Div(
         H2("Scraper Progress"),
-        get_progress_content(all_progress)
+        get_progress_content()
     )
 
 serve()

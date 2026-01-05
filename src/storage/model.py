@@ -1,3 +1,4 @@
+from datetime import datetime
 from sqlmodel import Field, SQLModel
 
 
@@ -22,14 +23,15 @@ class jobs(SQLModel, table=True):
 
 class scraperStatus(SQLModel, table=True):
     __table_args__ = {'extend_existing': True}
-    id: int = Field(default=None, primary_key=True)  # Auto-incrementing primary key
+    id: int = Field(primary_key=True)
     platform: str
-    total: int
-    current: int
-    successful: int
-    failed: int
-    status: str
-    last_updated: str
+    platform_url: str
+    total: int = 0
+    current: int = 0
+    successful: int = 0
+    failed: int = 0
+    status: str = "running"
+    last_updated: str = datetime.now().isoformat()
     process_id: int = 0
 
 class Users(SQLModel, table=True):

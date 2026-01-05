@@ -284,7 +284,9 @@ class BaseScraper(Database):
         
         # Create scraperStatus object
         status_info = scraperStatus(
+            id=self.companyid,
             platform=data['platform'],
+            platform_url=self.link,
             total=data['total'],
             current=data['current'],
             successful=data['successful'],
