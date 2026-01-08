@@ -11,6 +11,7 @@ dependencies = [
     "locationtagger>=0.0.1",
     "lxml>=6.0.2",
     "lxml-html-clean>=0.4.3",
+    "nicegui>=3.4.1",
     "pgeocode>=0.5.0",
     "ptpython>=3.0.32",
     "pycountry>=24.6.1",
