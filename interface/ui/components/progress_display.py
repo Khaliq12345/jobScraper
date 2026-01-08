@@ -15,19 +15,22 @@ class ProgressDisplay:
         self.db = db
         self.auth = auth
         self.status_filter = 'all'
+        self.search_query = ''
         self.container = None
         self._render()
     
     def _render(self):
         """Render the progress display"""
-        # Refresh button
-        ui.button('Refresh', on_click=self._refresh, icon='refresh').props('flat')
+        # Control buttons row
+        with ui.row().classes('w-full gap-4 mb-4 items-center'):
+            ui.button('Refresh', on_click=self._refresh, icon='refresh').props('flat color=primary')
         
         ui.separator()
         
-        # Status filter
-        with ui.row().classes('items-center gap-4 mb-4'):
-            ui.label('Filter by status:')
+        # Filter and search row
+        with ui.row().classes('w-full gap-4 mb-4 items-center'):
+            # Status filter
+            ui.label('Filter by status:').classes('text-sm font-medium')
             
             all_progress = self.db.get_all_process()
             statuses = ['all'] + list(set(data.status for data in all_progress))
@@ -36,7 +39,16 @@ class ProgressDisplay:
                 statuses,
                 value='all',
                 on_change=lambda e: self._filter_changed(e.value)
-            ).props('outlined dense')
+            ).props('outlined dense').classes('w-40')
+            
+            # Search by name
+            ui.label('Search by name:').classes('text-sm font-medium ml-4')
+            
+            search_input = ui.input(
+                placeholder='Enter platform name or URL...'
+            ).props('outlined dense clearable').classes('flex-1')
+            
+            search_input.on_value_change(lambda e: self._search_changed(e.value))
         
         ui.separator()
         
@@ -47,6 +59,11 @@ class ProgressDisplay:
     def _filter_changed(self, new_filter: str):
         """Handle filter change"""
         self.status_filter = new_filter
+        self._update_display()
+    
+    def _search_changed(self, search_value: str):
+        """Handle search query change"""
+        self.search_query = search_value.lower() if search_value else ''
         self._update_display()
     
     def _refresh(self):
@@ -67,16 +84,31 @@ class ProgressDisplay:
                 ui.label('No progress data available yet.').classes('text-gray-500')
             return
         
-        # Filter progress
+        # Apply status filter
         if self.status_filter == 'all':
             filtered = all_progress
         else:
             filtered = [d for d in all_progress if d.status == self.status_filter]
         
+        # Apply search filter by name/URL
+        if self.search_query:
+            filtered = [
+                d for d in filtered 
+                if self.search_query in d.platform.lower() or 
+                   self.search_query in d.platform_url.lower()
+            ]
+        
         if not filtered:
             with self.container:
-                ui.label(f'No sites with status: {self.status_filter}').classes('text-gray-500')
+                if self.search_query:
+                    ui.label(f'No results found for "{self.search_query}"').classes('text-gray-500')
+                else:
+                    ui.label(f'No sites with status: {self.status_filter}').classes('text-gray-500')
             return
+        
+        # Show result count
+        with self.container:
+            ui.label(f'Showing {len(filtered)} of {len(all_progress)} scrapers').classes('text-sm text-gray-500 mb-2')
         
         # Render each process card
         with self.container:
@@ -92,7 +124,7 @@ class ProgressDisplay:
             # Header
             with ui.row().classes('w-full items-center justify-between mb-4'):
                 ui.label(f'📊 {data.platform}').classes('text-lg font-bold')
-                ui.html(f'<span class="status-badge {badge_class}">{data.status.upper()}</span>', sanitize=False)
+                ui.chip(data.status.upper(), icon='status')
 
             
             # Main metrics

@@ -83,6 +83,12 @@ class Database:
             processes = session.exec(stmt).all()
             return list(processes)
 
+    def get_process(self, companyid: int):
+        with Session(bind=self.engine2) as session:
+            stmt = select(scraperStatus).where(scraperStatus.id == companyid)
+            process = session.exec(stmt).first()
+            return process
+
     def update_process_status(self, status: str, platform: str) -> None:        
         with Session(bind=self.engine2) as session:
             stmt = select(scraperStatus).where(scraperStatus.platform == platform)

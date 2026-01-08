@@ -7,12 +7,15 @@ from src.scrapers.base.base_scraper import BaseScraper
 
 
 class Wise(BaseScraper):
-    def __init__(self) -> None:
+    def __init__(self, save: bool, process_id: int, is_test: bool) -> None:
         super().__init__(
             name="Wise",
             link="https://wise.jobs/jobs",
             domain="https://wise.jobs",
             companyid=18,
+            save=save,
+            process_id=process_id,
+            is_test=is_test
         )
 
     def get_positions(self) -> list[str]:

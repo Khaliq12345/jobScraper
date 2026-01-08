@@ -4,6 +4,23 @@ Scraper list page - Shows available scrapers and allows launching them
 from nicegui import ui
 from src.storage.database import Database
 from interface.middleware.auth import AuthMiddleware
+from interface.utils.start_scraper import start_generic_scraper
+
+# Get scrapers for the selected type
+            # name="Wise",
+            # link="https://wise.jobs/jobs",
+            # domain="https://wise.jobs",
+            # companyid=18,
+scrapers = [
+    {
+    'name': 'Wise', 
+    'color': 'green', 
+    'enabled': True,
+    'platform_link': 'https://wise.jobs/jobs',
+    'id': 18
+    }
+]
+
 
 class ScraperListPage:
     """Page showing list of available scrapers"""
@@ -23,12 +40,7 @@ class ScraperListPage:
     def main(self):
         """Render the scraper list UI"""
         session_info = self.auth.get_session_info()
-        username = session_info['username']
-        
-        # Get scrapers for the selected type
-        scrapers = [
-            {'title': 'Test scraper', 'name': 'Test scraper'}
-        ]
+        username = session_info['username']  
         
         with ui.column().classes('w-full min-h-screen p-6'):
             # Header
@@ -127,40 +139,49 @@ class ScraperListPage:
                             ui.badge('Active', color='green')
                         else:
                             ui.badge('Disabled', color='red')
-                    
-                    # Description
-                    ui.label(scraper.get('description', 'No description available')).classes('text-gray-600 dark:text-gray-400')
-                    
-                    # Metadata
-                    with ui.row().classes('gap-6 mt-2'):
-                        if 'version' in scraper:
-                            with ui.row().classes('items-center gap-1'):
-                                ui.icon('info', size='16px').classes('text-gray-500')
-                                ui.label(f"v{scraper['version']}").classes('text-xs text-gray-500')
-                        
-                        if 'author' in scraper:
-                            with ui.row().classes('items-center gap-1'):
-                                ui.icon('person', size='16px').classes('text-gray-500')
-                                ui.label(scraper['author']).classes('text-xs text-gray-500')
-                        
-                        if 'category' in scraper:
-                            with ui.row().classes('items-center gap-1'):
-                                ui.icon('category', size='16px').classes('text-gray-500')
-                                ui.label(scraper['category']).classes('text-xs text-gray-500')
-                    
-                    # Features/Capabilities
-                    if 'features' in scraper and scraper['features']:
-                        with ui.expansion('Features', icon='stars').classes('mt-2 w-full'):
-                            with ui.column().classes('gap-1'):
-                                for feature in scraper['features']:
-                                    ui.label(f'✓ {feature}').classes('text-sm')
-                    
-                    # Configuration requirements
-                    if 'required_config' in scraper and scraper['required_config']:
-                        with ui.expansion('Required Configuration', icon='settings').classes('mt-2 w-full'):
-                            with ui.column().classes('gap-1'):
-                                for config_key in scraper['required_config']:
-                                    ui.label(f'• {config_key}').classes('text-sm text-gray-600 dark:text-gray-400')
+
+                with ui.row().classes('w-full items-start gap-6'):
+                    scraper_info = self.db.get_process(scraper['id'])
+                    # Progress Information (if scraper is running) - In Expansion
+                    if scraper_info:
+                        with ui.expansion('Current Progress', icon='analytics').classes('mt-2 w-full'):
+                            with ui.column().classes('w-full gap-2 p-3 bg-blue-50 dark:bg-blue-900 rounded'):
+                                # Status header
+                                with ui.row().classes('w-full items-center justify-between mb-2'):
+                                    ui.label('Status').classes('text-sm font-bold')
+                                    ui.chip(scraper_info.status.upper())
+                                
+                                # Progress bar
+                                if scraper_info.total > 0:
+                                    progress = scraper_info.current / scraper_info.total
+                                    with ui.column().classes('w-full gap-1 mt-2'):
+                                        ui.linear_progress(progress).props('stripe rounded color=primary')
+                                        ui.label(
+                                            f'{scraper_info.current}/{scraper_info.total} ({progress*100:.1f}%)'
+                                        ).classes('text-xs text-gray-600 dark:text-gray-300')
+                                
+                                # Stats row
+                                with ui.row().classes('w-full gap-4 mt-2'):
+                                    with ui.column().classes('items-center'):
+                                        ui.label('✅ Success').classes('text-xs text-gray-600 dark:text-gray-300')
+                                        ui.label(str(scraper_info.successful)).classes('text-lg font-bold text-green-600 dark:text-green-400')
+                                    
+                                    with ui.column().classes('items-center'):
+                                        ui.label('❌ Failed').classes('text-xs text-gray-600 dark:text-gray-300')
+                                        ui.label(str(scraper_info.failed)).classes('text-lg font-bold text-red-600 dark:text-red-400')
+                                    
+                                    with ui.column().classes('flex-1'):
+                                        ui.label('🕐 Last Updated').classes('text-xs text-gray-600 dark:text-gray-300')
+                                        ui.label(str(scraper_info.last_updated)).classes('text-xs text-gray-700 dark:text-gray-300')
+                                
+                                # Platform info
+                                ui.separator().classes('my-2')
+                                with ui.column().classes('w-full gap-1'):
+                                    ui.label(f'Platform: {scraper_info.platform}').classes('text-xs text-gray-600 dark:text-gray-300')
+                                    ui.label(f'Process ID: {scraper_info.process_id}').classes('text-xs text-gray-600 dark:text-gray-300')
+                                    if scraper_info.platform_url:
+                                        ui.label('URL:').classes('text-xs text-gray-600 dark:text-gray-300 mt-1')
+                                        ui.label(str(scraper_info.platform_url)).classes('text-xs break-all text-gray-700 dark:text-gray-300')
                 
                 # Action buttons
                 with ui.column().classes('gap-2 items-end'):
@@ -173,20 +194,6 @@ class ScraperListPage:
                         ).props('color=primary')
                     else:
                         ui.button('Disabled', icon='block').props('disable color=grey')
-                    
-                    # Configure button
-                    ui.button(
-                        'Configure',
-                        on_click=lambda s=scraper: self._configure_scraper(s),
-                        icon='settings'
-                    ).props('flat color=secondary')
-                    
-                    # View details button
-                    ui.button(
-                        'Details',
-                        on_click=lambda s=scraper: self._view_details(s),
-                        icon='info'
-                    ).props('flat color=grey')
     
     def _launch_scraper(self, scraper: dict):
         """Launch a scraper"""
@@ -196,25 +203,7 @@ class ScraperListPage:
             
             # Dynamic input fields based on required_config
             inputs = {}
-            required_config = scraper.get('required_config', [])
-            
-            for config_key in required_config:
-                if config_key == 'platform_link':
-                    inputs[config_key] = ui.input(
-                        label='Platform Link',
-                        placeholder='https://...'
-                    ).classes('w-full').props('outlined')
-                elif config_key == 'jobserver_id':
-                    inputs[config_key] = ui.input(
-                        label='Job Server ID',
-                        placeholder='Enter ID'
-                    ).classes('w-full').props('outlined')
-                else:
-                    inputs[config_key] = ui.input(
-                        label=config_key.replace('_', ' ').title(),
-                        placeholder=f'Enter {config_key}'
-                    ).classes('w-full').props('outlined')
-            
+
             # Optional settings
             save_to_db = ui.checkbox('Save to Database', value=True)
             is_test = ui.checkbox('Test Run', value=False)
@@ -229,23 +218,24 @@ class ScraperListPage:
                     config[key] = input_field.value
                 
                 # Launch scraper
-                try:
-                    result = self.scraper_launcher.launch(
-                        scraper_id=scraper['id'],
-                        scraper_class=scraper['class'],
-                        config=config,
-                        save_to_db=save_to_db.value,
-                        is_test=is_test.value
-                    )
-                    
-                    if result:
-                        ui.notify(f'{scraper["name"]} launched successfully!', type='positive')
-                        dialog.close()
-                        ui.timer(1.0, lambda: ui.navigate.to('/dashboard'), once=True)
-                    else:
-                        ui.notify('Failed to launch scraper', type='negative')
-                except Exception as e:
-                    ui.notify(f'Error: {str(e)}', type='negative')
+                # try:
+                result = start_generic_scraper(
+                    db=self.db, 
+                    jobserver_id=scraper['id'],
+                    is_test=is_test.value,
+                    save_to_db=save_to_db.value,
+                    name=scraper['name'],
+                    platform_link=scraper['platform_link']
+                )
+                
+                if result:
+                    ui.notify(f'{scraper["name"]} launched successfully!', type='positive')
+                    dialog.close()
+                    ui.timer(1.0, lambda: ui.navigate.to('/generic-scraper'), once=True)
+                else:
+                    ui.notify('Failed to launch scraper', type='negative')
+                # except Exception as e:
+                #     ui.notify(f'Error: {str(e)}', type='negative')
             
             with ui.row().classes('w-full gap-2 mt-4'):
                 ui.button('Cancel', on_click=dialog.close).props('flat')
