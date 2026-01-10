@@ -1,17 +1,19 @@
+import time
 from urllib.parse import urljoin
-from datetime import datetime
 from selectolax.parser import HTMLParser
 from src.scrapers.base.base_scraper import BaseScraper
 
 
 class Google(BaseScraper):
-    def __init__(self, save: bool) -> None:
+    def __init__(self, save: bool, process_id: int, is_test: bool) -> None:
         super().__init__(
-            save=save, 
             name="Google", 
             link="https://www.google.com/about/careers/applications/jobs/results/", 
             domain="https://www.google.com", 
-            companyid=22
+            companyid=22,
+            save=save,
+            process_id=process_id,
+            is_test=is_test
         )
 
 
@@ -63,7 +65,7 @@ class Google(BaseScraper):
         country = location_el.text(strip=True) if location_el else ""
 
         job_dict = {
-            "jobid": int(datetime.now().timestamp()),
+            "jobid": time.time_ns(),
             "companyid": self.companyid,
             "jobposition": jobposition,
             "scrapedsource": position_link,

@@ -1,4 +1,4 @@
-from time import sleep, time
+from time import sleep, time_ns
 from urllib.parse import urljoin
 
 from selectolax.parser import HTMLParser
@@ -7,12 +7,15 @@ from src.scrapers.base.base_scraper import BaseScraper
 
 
 class JB(BaseScraper):
-    def __init__(self) -> None:
+    def __init__(self, save: bool, process_id: int, is_test: bool) -> None:
         super().__init__(
             name="Julius Berger",
             link="https://juliusbergerinternationalgmbh.recruitee.com/",
             domain="https://juliusbergerinternationalgmbh.recruitee.com",
             companyid=199,
+            save=save,
+            process_id=process_id,
+            is_test=is_test
         )
 
     def get_positions(self) -> list[str]:
@@ -55,7 +58,7 @@ class JB(BaseScraper):
         job_description = job_description.text(strip=True) if job_description else ""
 
         job_dict = {
-            "jobid": int(time()),
+            "jobid": time_ns(),
             "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": job_description,

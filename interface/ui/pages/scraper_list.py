@@ -6,19 +6,140 @@ from src.storage.database import Database
 from interface.middleware.auth import AuthMiddleware
 from interface.utils.start_scraper import start_generic_scraper
 
-# Get scrapers for the selected type
-            # name="Wise",
-            # link="https://wise.jobs/jobs",
-            # domain="https://wise.jobs",
-            # companyid=18,
 scrapers = [
     {
-    'name': 'Wise', 
-    'color': 'green', 
-    'enabled': True,
-    'platform_link': 'https://wise.jobs/jobs',
-    'id': 18
-    }
+        'name': 'Wise', 
+        'color': 'green', 
+        'enabled': True,
+        'platform_link': 'https://wise.jobs/jobs',
+        'id': 18
+    },
+    {
+        'name': 'Adidas', 
+        'color': 'green', 
+        'enabled': True,
+        'platform_link': 'https://careers.adidas-group.com/jobs',
+        'id': 41
+    },
+    {
+        'name': 'Airbnb', 
+        'color': 'green', 
+        'enabled': True,
+        'platform_link': 'https://careers.airbnb.com/positions',
+        'id': 19
+    },
+    {
+        'name': 'Apple',
+        'color': 'green',
+        'enabled': True,
+        'platform_link': 'https://jobs.apple.com/en-us/search',
+        'id': 21
+    },
+    {
+        'name': 'ATT',
+        'color': 'green',
+        'enabled': True,
+        'platform_link': 'https://att.jobs/search',
+        'id': 30
+    },
+    {
+        'name': 'Bank of America',
+        'color': 'green',
+        'enabled': True,
+        'platform_link': 'https://careers.bankofamerica.com/en-us/job-search',
+        'id': 33
+    },
+    {
+        'name': 'Capitec Bank',
+        'color': 'green',
+        'enabled': True,
+        'platform_link': 'https://www.capitecbank.co.za/careers',
+        'id': 35
+    },
+    {
+        'name': 'Cisco',
+        'color': 'green',
+        'enabled': True,
+        'platform_link': 'https://jobs.cisco.com/jobs/SearchJobs',
+        'id': 34
+    },
+    {
+        'name': 'Coinbase',
+        'color': 'green',
+        'enabled': True,
+        'platform_link': 'https://www.coinbase.com/careers/positions',
+        'id': 32
+    },
+    {
+        'name': 'Ecolab',
+        'color': 'green',
+        'enabled': True,
+        'platform_link': 'https://ecolab.wd5.myworkdayjobs.com/Ecolab_Careers',
+        'id': 15
+    },
+    {
+        'name': 'Google',
+        'color': 'green',
+        'enabled': True,
+        'platform_link': 'https://www.google.com/about/careers/applications',
+        'id': 22
+    },
+    {
+        'name': 'Capgemini',
+        'color': 'green',
+        'enabled': True,
+        'platform_link': 'https://www.capgemini.com/careers/job-search',
+        'id': 47
+    },
+    {
+        'name': 'Dangote',
+        'color': 'green',
+        'enabled': True,
+        'platform_link': 'https://careers.dangote.com/jobs',
+        'id': 54
+    },
+    {
+        'name': 'Huawei',
+        'color': 'green',
+        'enabled': True,
+        'platform_link': 'https://career.huawei.com/reccampportal/portal5/campus-recruitment.html',
+        'id': 900
+    },
+    {
+        'name': 'Julius Berger',
+        'color': 'green',
+        'enabled': True,
+        'platform_link': 'https://www.juliusberger.com/careers',
+        'id': 199
+    },
+    {
+        'name': 'Sanofi',
+        'color': 'green',
+        'enabled': True,
+        'platform_link': 'https://jobs.sanofi.com/en/jobs',
+        'id': 899
+    },
+    {
+        'name': 'Siemens',
+        'color': 'green',
+        'enabled': True,
+        'platform_link': 'https://jobs.siemens.com/careers',
+        'id': 10
+    },
+    {
+        'name': 'Sysco',
+        'color': 'green',
+        'enabled': True,
+        'platform_link': 'https://sysco.wd1.myworkdayjobs.com/SyscoJobs',
+        'id': 75
+    },
+    {
+        'name': 'Verizon',
+        'color': 'green',
+        'enabled': True,
+        'platform_link': 'https://www.verizon.com/about/work/jobs',
+        'id': 31
+    },
 ]
 
 
@@ -116,7 +237,7 @@ class ScraperListPage:
                         self._render_scraper_card(scraper)
                 
                 # Update on search
-                search_input.on('input', filter_scrapers)
+                search_input.on_value_change(filter_scrapers)
     
     def _render_scraper_card(self, scraper: dict):
         """Render a single scraper card"""
@@ -242,29 +363,4 @@ class ScraperListPage:
                 ui.button('Launch', on_click=start_scraper, icon='play_arrow').props('color=primary')
         
         dialog.open()
-    
-    def _configure_scraper(self, scraper: dict):
-        """Open scraper configuration"""
-        ui.notify(f'Configure {scraper["name"]} - Coming soon', type='info')
-    
-    def _view_details(self, scraper: dict):
-        """View scraper details"""
-        with ui.dialog() as dialog, ui.card().classes('w-96 p-6'):
-            ui.label(scraper['name']).classes('text-2xl font-bold mb-4')
-            
-            ui.separator().classes('mb-4')
-            
-            ui.label('Description').classes('text-sm font-bold text-gray-500 mb-2')
-            ui.label(scraper.get('description', 'No description')).classes('mb-4')
-            
-            if 'class' in scraper:
-                ui.label('Python Class').classes('text-sm font-bold text-gray-500 mb-2')
-                ui.label(scraper['class']).classes('font-mono text-sm mb-4')
-            
-            if 'module' in scraper:
-                ui.label('Module').classes('text-sm font-bold text-gray-500 mb-2')
-                ui.label(scraper['module']).classes('font-mono text-sm mb-4')
-            
-            ui.button('Close', on_click=dialog.close).props('flat')
-        
-        dialog.open()
+

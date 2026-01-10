@@ -6,13 +6,15 @@ from src.scrapers.base.base_scraper import BaseScraper
 
 
 class Ecolab(BaseScraper):
-    def __init__(self, save: bool) -> None:
+    def __init__(self, save: bool, process_id: int, is_test: bool) -> None:
         super().__init__(
             name="Ecolab",
             link="https://jobs.ecolab.com/global/en/search-results",
             domain="https://jobs.ecolab.com",
             companyid=15,
-            save=save
+            save=save,
+            process_id=process_id,
+            is_test=is_test
         )
 
     def get_positions(self) -> list[str]:

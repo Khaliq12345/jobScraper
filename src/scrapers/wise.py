@@ -1,4 +1,4 @@
-from time import sleep, time
+from time import sleep, time_ns
 from urllib.parse import urljoin
 
 from selectolax.parser import HTMLParser
@@ -79,7 +79,7 @@ class Wise(BaseScraper):
         job_salary = job_salary.text(strip=True) if job_salary else ""
 
         job_dict = {
-            "jobid": int(time()),
+            "jobid": time_ns(),
             "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": job_description,

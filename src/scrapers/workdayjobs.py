@@ -1,5 +1,4 @@
-from time import sleep
-import time
+from time import sleep, time_ns
 import requests
 from selectolax.parser import HTMLParser
 from src.scrapers.base.base_scraper import BaseScraper
@@ -93,7 +92,7 @@ class Workday(BaseScraper):
         jobaddress = job_info['location']
 
         job_dict = {
-            "jobid": int(time.time()),
+            "jobid": time_ns(),
             "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": jobdescription,

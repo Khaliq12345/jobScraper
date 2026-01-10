@@ -1,5 +1,5 @@
 from country_named_entity_recognition import find_countries
-from time import sleep, time
+from time import sleep, time_ns
 
 import httpx
 from selectolax.parser import HTMLParser
@@ -8,13 +8,15 @@ from src.scrapers.base.base_scraper import BaseScraper
 
 
 class Capgemini(BaseScraper):
-    def __init__(self, save: bool) -> None:
+    def __init__(self, save: bool, process_id: int, is_test: bool) -> None:
         super().__init__(
             name="Capgemini",
             link="https://www.capgemini.com/wp-json/macs/v1/jobs?size=5000",
             domain="https://www.capgemini.com",
             companyid=47,
-            save=save
+            save=save,
+            process_id=process_id,
+            is_test=is_test
         )
 
 
@@ -50,7 +52,7 @@ class Capgemini(BaseScraper):
         jobexperience = job["experience_level"]
         jobpattern = job["contract_type"]
         job_dict = {
-            "jobid": int(time()),
+            "jobid": time_ns(),
             "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": job_description,

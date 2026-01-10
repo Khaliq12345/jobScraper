@@ -1,4 +1,4 @@
-from datetime import datetime
+import time
 import httpx
 from src.scrapers.base.base_scraper import BaseScraper
 
@@ -40,8 +40,16 @@ headers = {
 }
 
 class Apple(BaseScraper):
-    def __init__(self, save: bool) -> None:
-        super().__init__(name = "Apple", link="https://jobs.apple.com/en-us/search", companyid=21, domain="https://jobs.apple.com", save=save)
+    def __init__(self, save: bool, process_id: int, is_test: bool) -> None:
+        super().__init__(
+            name = "Apple",
+            link="https://jobs.apple.com/en-us/search",
+            companyid=21,
+            domain="https://jobs.apple.com",
+            save=save,
+            process_id=process_id,
+            is_test=is_test
+        )
 
 
     def get_positions(self) -> list[str]:
@@ -94,7 +102,7 @@ class Apple(BaseScraper):
         job_link = f"https://jobs.apple.com/en-us/details/{position_data['jobNumber']}/{position_data['transformedPostingTitle']}"
 
         job_dict = {
-            "jobid": int(datetime.now().timestamp()),
+            "jobid": time.time_ns(),
             "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": job_description,

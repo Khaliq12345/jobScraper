@@ -7,13 +7,15 @@ from src.scrapers.base.base_scraper import BaseScraper
 
 
 class Airbnb(BaseScraper):
-    def __init__(self, save: bool) -> None:
+    def __init__(self, save: bool, process_id: int, is_test: bool) -> None:
         super().__init__(
             name="Airbnb",
             link="https://careers.airbnb.com/positions/",
             domain="https://careers.airbnb.com",
             companyid=19,
-            save=save
+            save=save,
+            process_id=process_id,
+            is_test=is_test
         )
 
     def get_positions(self) -> list[str]:
@@ -125,7 +127,7 @@ class Airbnb(BaseScraper):
         jobniche = ""
 
         job_dict = {
-            "jobid": job_id,
+            "jobid": time.time_ns(),
             "jobposition": jobposition,
             "jobdescription": job_description,
             "jobpattern": workmode,

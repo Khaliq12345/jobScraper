@@ -79,6 +79,7 @@ class BaseScraper(Database):
         
 
         scraped_job.jobsalary = scraped_job.jobsalary.replace("Salary:", "")
+        scraped_job.jobid = int(scraped_job.jobid) * scraped_job.companyid
 
         return scraped_job
 
@@ -235,8 +236,8 @@ class BaseScraper(Database):
                         continue
                         
                     if self.save:
-                        self.send_job(parsed_position)
-                    
+                        job_data = parsed_position.model_dump(exclude={'jobid'})
+                        self.send_job(jobs(**job_data))                    
                     successful += 1
                     
                 except Exception as e:

@@ -1,4 +1,4 @@
-from datetime import datetime
+import time
 from urllib.parse import urljoin
 
 from selectolax.parser import HTMLParser
@@ -7,13 +7,15 @@ from src.scrapers.base.base_scraper import BaseScraper
 
 
 class CapitecBank(BaseScraper):
-    def __init__(self, save: bool) -> None:
+    def __init__(self, save: bool, process_id: int, is_test: bool) -> None:
         super().__init__(
             name="Capitec Bank",
             link="https://careers.capitecbank.co.za/search/",
             domain="https://careers.capitecbank.co.za",
             companyid=35,
-            save=save
+            save=save,
+            process_id=process_id,
+            is_test=is_test
         )
 
     def get_positions(self) -> list[str]:
@@ -51,7 +53,7 @@ class CapitecBank(BaseScraper):
         jobdescription = desc_el.text(strip=True, separator=" ") if desc_el else ""
 
         job_dict = {
-            "jobid": int(datetime.now().timestamp()),
+            "jobid": time.time_ns(),
             "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": jobdescription,

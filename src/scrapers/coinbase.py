@@ -1,7 +1,6 @@
 from src.scrapers.base.base_scraper import BaseScraper
 from selectolax.parser import HTMLParser
 from urllib.parse import urljoin
-from datetime import datetime
 import json
 import re
 import time
@@ -10,13 +9,15 @@ import cloudscraper
 
 
 class Coinbase(BaseScraper):
-    def __init__(self, save: bool) -> None:
+    def __init__(self, save: bool, process_id: int, is_test: bool) -> None:
         super().__init__(
             name="Coinbase",
             link="https://www.coinbase.com/careers/positions",
             domain="https://www.coinbase.com",
             companyid=32,
-            save=save
+            save=save,
+            process_id=process_id,
+            is_test=is_test
         )
         self.scraper = cloudscraper.create_scraper(
             browser={
@@ -202,7 +203,7 @@ class Coinbase(BaseScraper):
                             jobcountry = parts[-1].strip()
  
         job_dict = {
-            "jobid": int(job_id) if job_id and job_id.isdigit() else int(datetime.now().timestamp()),
+            "jobid": time.time_ns(),
             "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": jobdescription,

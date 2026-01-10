@@ -1,4 +1,4 @@
-from time import sleep, time
+from time import sleep, time_ns
 from urllib.parse import urljoin
 
 import requests
@@ -8,12 +8,15 @@ from src.scrapers.base.base_scraper import BaseScraper
 
 
 class Sanofi(BaseScraper):
-    def __init__(self) -> None:
+    def __init__(self, save: bool, process_id: int, is_test: bool) -> None:
         super().__init__(
             name="Sanofi",
             link="https://jobs.sanofi.com/en/search-jobs/results?CurrentPage=3&RecordsPerPage=100&TotalContentResults=&Distance=50&RadiusUnitType=0&Keywords=&Location=&ShowRadius=False&IsPagination=False&CustomFacetName=&FacetTerm=&FacetType=0&SearchResultsModuleName=Search+Results&SearchFiltersModuleName=Search+Filters&SortCriteria=0&SortDirection=0&SearchType=5&PostalCode=&ResultsType=0",
             domain="https://jobs.sanofi.com/",
             companyid=899,
+            save=save,
+            process_id=process_id,
+            is_test=is_test
         )
 
     def get_positions(self) -> list[str]:
@@ -64,7 +67,7 @@ class Sanofi(BaseScraper):
         job_description = job_description.text(strip=True) if job_description else ""
 
         job_dict = {
-            "jobid": int(time()),
+            "jobid": time_ns(),
             "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": job_description,

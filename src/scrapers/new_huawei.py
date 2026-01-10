@@ -1,4 +1,4 @@
-from time import sleep, time
+from time import sleep, time_ns
 
 import requests
 
@@ -6,12 +6,15 @@ from src.scrapers.base.base_scraper import BaseScraper
 
 
 class HUAWEI(BaseScraper):
-    def __init__(self) -> None:
+    def __init__(self, save: bool, process_id: int, is_test: bool) -> None:
         super().__init__(
             name="HUAWEI",
             link="https://career.huawei.com/reccampportal/services/portal/portalpub/getJob/newHr/page/20/1?curPage=1&pageSize=20&jobFamilyCode=&deptCode=&keywords=&searchType=1&orderBy=P_COUNT_DESC&jobType=1",
             domain="https://career.huawei.com/",
             companyid=900,
+            save=save,
+            process_id=process_id,
+            is_test=is_test
         )
 
     def get_positions(self) -> list[str]:
@@ -32,7 +35,7 @@ class HUAWEI(BaseScraper):
         job_description = position["mainBusiness"]
         job_niche = position["deptName"]
         job_dict = {
-            "jobid": int(time()),
+            "jobid": time_ns(),
             "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": job_description,

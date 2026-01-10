@@ -1,18 +1,20 @@
+import time
 from src.scrapers.base.base_scraper import BaseScraper
 from selectolax.parser import HTMLParser
 from urllib.parse import urljoin
-from datetime import datetime
 import re
 
 
 class BankOfAmerica(BaseScraper):
-    def __init__(self, save: bool) -> None:
+    def __init__(self, save: bool, process_id: int, is_test: bool) -> None:
         super().__init__(
             name="Bank of America", 
             link="https://careers.bankofamerica.com/en-us/job-search",
             domain="https://careers.bankofamerica.com",
             companyid=33,
-            save=save
+            save=save,
+            process_id=process_id,
+            is_test=is_test
         )
 
 
@@ -125,7 +127,7 @@ class BankOfAmerica(BaseScraper):
 
         # Données de base du job_dict
         job_dict = {
-            "jobid": int(jobid) if jobid and jobid.isdigit() else int(datetime.now().timestamp()),
+            "jobid": time.time_ns(),
             "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": jobdescription,

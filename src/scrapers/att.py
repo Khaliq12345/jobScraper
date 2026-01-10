@@ -1,5 +1,5 @@
+import time
 from urllib.parse import urljoin
-from datetime import datetime
 import json
 import re
 from selectolax.parser import HTMLParser
@@ -7,13 +7,15 @@ from src.scrapers.base.base_scraper import BaseScraper
 
 
 class ATT(BaseScraper):
-    def __init__(self, save: bool) -> None:
+    def __init__(self, save: bool, process_id: int, is_test: bool) -> None:
         super().__init__(
-            name="AT&T",
+            name="ATT",
             link="https://www.att.jobs/search-jobs",
             domain="https://www.att.jobs",
             companyid=30,
-            save=save
+            save=save,
+            process_id=process_id,
+            is_test=is_test
         )
 
     def get_positions(self) -> list[str]:
@@ -118,10 +120,9 @@ class ATT(BaseScraper):
                 else:
                     jobpattern = employment_type
 
-        job_id = json_data.get("identifier", "") if json_data else ""
 
         job_dict = {
-            "jobid": job_id if job_id else int(datetime.now().timestamp()),
+            "jobid": time.time_ns(),
             "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": jobdescription,

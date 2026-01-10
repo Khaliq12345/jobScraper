@@ -1,5 +1,5 @@
 from country_named_entity_recognition import find_countries
-from time import sleep, time
+from time import sleep, time_ns
 from urllib.parse import urljoin
 
 import requests
@@ -8,12 +8,15 @@ from src.scrapers.base.base_scraper import BaseScraper
 
 
 class Dangote(BaseScraper):
-    def __init__(self) -> None:
+    def __init__(self, save: bool, process_id: int, is_test: bool) -> None:
         super().__init__(
             name="Dangote",
             link="https://careers.dangote.com/tile-search-results/?q=&sortColumn=referencedate&sortDirection=desc&startrow=200&_=1766067820563",
             domain="https://careers.dangote.com/",
             companyid=54,
+            save=save,
+            process_id=process_id,
+            is_test=is_test
         )
 
     def get_positions(self) -> list[str]:
@@ -66,7 +69,7 @@ class Dangote(BaseScraper):
         job_qualification = self._extract_qualifications(job_description)
 
         job_dict = {
-            "jobid": int(time()),
+            "jobid": time_ns(),
             "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": job_description,

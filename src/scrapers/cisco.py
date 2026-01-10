@@ -1,19 +1,21 @@
+import time
 from src.scrapers.base.base_scraper import BaseScraper
 from selectolax.parser import HTMLParser
-from datetime import datetime
 import re
 import json
 import html
 
 
 class Cisco(BaseScraper):
-    def __init__(self, save:bool) -> None:
+    def __init__(self, save: bool, process_id: int, is_test: bool) -> None:
         super().__init__(
             name="Cisco",
             link="https://careers.cisco.com/global/en/search-results",
             domain="https://careers.cisco.com",
             companyid=34,
-            save=save
+            save=save,
+            process_id=process_id,
+            is_test=is_test
         )
 
     def extract_phenom_json(self, text: str):
@@ -139,7 +141,7 @@ class Cisco(BaseScraper):
                 pass
 
         job_dict = {
-            'jobid': int(datetime.now().timestamp()),
+            'jobid': time.time_ns(),
             'companyid': self.companyid,
             'jobposition': jobposition,
             'jobdescription': jobdescription,

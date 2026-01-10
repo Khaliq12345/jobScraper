@@ -4,7 +4,8 @@ from sqlmodel import Field, SQLModel
 
 class jobs(SQLModel, table=True):
     __table_args__ = {'extend_existing': True}
-    jobid:  int = Field(primary_key=True)
+    jobid: int | None = Field(primary_key=True, default=None)
+    # jobid:  int = Field(primary_key=True, default=None)
     companyid: int 
     jobposition: str = ""
     jobdescription: str = ""

@@ -7,7 +7,7 @@ from dataclasses import dataclass
 @dataclass
 class Settings:
     """Application settings"""
-    SESSION_TIMEOUT_MINUTES: int = 30
+    SESSION_TIMEOUT_MINUTES: int = 300
     SECRET_KEY: str = os.getenv('SECRET_KEY', 'your-secret-key-here-change-in-production')
     MIN_PASSWORD_LENGTH: int = 6
     

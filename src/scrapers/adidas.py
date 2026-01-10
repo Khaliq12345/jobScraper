@@ -1,7 +1,6 @@
-from datetime import datetime
+import time
 from urllib.parse import urljoin
 from xml.etree import ElementTree as ET
-
 import cloudscraper
 from selectolax.parser import HTMLParser
 
@@ -9,18 +8,22 @@ from src.scrapers.base.base_scraper import BaseScraper
 
 
 class Adidas(BaseScraper):
-    def __init__(self, save: bool, companyid: int) -> None:
+    def __init__(self, save: bool, process_id: int, is_test: bool) -> None:
         super().__init__(
             name="Adidas",
             link="https://careers.adidas-group.com/jobs",
             domain="https://careers.adidas-group.com",
-            companyid=companyid,
-            save=save
+            companyid=41,
+            save=save,
+            process_id=process_id,
+            is_test=is_test
         )
 
     def _get_html_adidas(self, url: str) -> str:
+        print(url)
         scraper = cloudscraper.create_scraper()
         response = scraper.get(url, timeout=30)
+        print(response)
         response.raise_for_status()
         return response.text
 
@@ -101,7 +104,7 @@ class Adidas(BaseScraper):
 
         # Données de base du job_dict
         job_dict = {
-            "jobid": int(datetime.now().timestamp()),
+            "jobid": time.time_ns(),
             "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": jobdescription,

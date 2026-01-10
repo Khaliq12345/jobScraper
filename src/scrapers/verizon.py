@@ -1,20 +1,23 @@
+from time import time_ns
 from country_named_entity_recognition import find_countries
 from src.scrapers.base.base_scraper import BaseScraper
 from selectolax.parser import HTMLParser
 from urllib.parse import urljoin
-from datetime import datetime
 import re
 import cloudscraper
 from src.utils import static
 
 
 class Verizon(BaseScraper):
-    def __init__(self) -> None:
+    def __init__(self, save: bool, process_id: int, is_test: bool) -> None:
         super().__init__(
             name="Verizon",
             link="https://mycareer.verizon.com/jobs/",
             domain="https://mycareer.verizon.com",
-            companyid=31
+            companyid=31,
+            save=save,
+            process_id=process_id,
+            is_test=is_test
         )
         self.scraper = cloudscraper.create_scraper(
             browser={
@@ -251,7 +254,7 @@ class Verizon(BaseScraper):
             jobqualifications = self._extract_qualifications(jobdescription)
 
         job_dict = {
-            "jobid": int(job_id) if job_id and job_id.isdigit() else int(datetime.now().timestamp()),
+            "jobid": time_ns(),
             "companyid": self.companyid,
             "jobposition": jobposition,
             "jobdescription": jobdescription,
@@ -266,58 +269,3 @@ class Verizon(BaseScraper):
         }
         
         return job_dict
-
-
-        
-"""
-if __name__ == "__main__":
-    import json
-    verizon = Verizon()
-    positions = verizon.get_positions()
-    print(f"\nNombre de positions trouvées: {len(positions)}", flush=True)
-
-    all_jobs: list[dict] = []
-    
-    # Ouvrir le fichier en mode écriture pour écrire progressivement
-    with open("verizon_results.json", "w", encoding="utf-8") as f:
-        f.write("[\n")  # Début du tableau JSON
-        first_item = True
-        
-        if positions:
-            for i, position_link in enumerate(positions, 1):
-                print(f"\nScraping [{i}/{len(positions)}]: {position_link}", flush=True)
-                try:
-                    job_dict = verizon.get_position_details(position_link)
-                    validated_job = verizon.validate_data(job_dict)
-                    job_dict_validated = validated_job.model_dump()
-                    print(json.dumps(job_dict_validated, indent=2, ensure_ascii=False), flush=True)
-                    all_jobs.append(job_dict_validated)
-                    
-                    # Écrire progressivement dans le fichier
-                    if not first_item:
-                        f.write(",\n")
-                    else:
-                        first_item = False
-                    
-                    # Écrire l'objet JSON avec indentation
-                    json_str = json.dumps(job_dict_validated, indent=4, ensure_ascii=False)
-                    # Ajouter l'indentation pour chaque ligne
-                    indented_lines = []
-                    for line in json_str.split('\n'):
-                        indented_lines.append("    " + line)
-                    f.write('\n'.join(indented_lines))
-                    f.flush()  # Forcer l'écriture immédiate
-                    
-                except Exception as e:
-                    print(f"Erreur lors du scraping de {position_link}: {e}", flush=True)
-        
-        f.write("\n]")  # Fin du tableau JSON
-        f.flush()
-
-    print(f"\nScraping terminé. {len(all_jobs)} offres sauvegardées dans 'verizon_results.json'.", flush=True)
- """       
-
-
-
-
-

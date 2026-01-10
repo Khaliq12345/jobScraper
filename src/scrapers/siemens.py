@@ -1,3 +1,4 @@
+from time import time_ns
 from urllib.parse import urljoin
 
 from selectolax.parser import HTMLParser
@@ -6,12 +7,15 @@ from src.scrapers.base.base_scraper import BaseScraper
 
 
 class Siemens(BaseScraper):
-    def __init__(self) -> None:
+    def __init__(self, save: bool, process_id: int, is_test: bool) -> None:
         super().__init__(
             name="Siemens",
             link="https://jobs.siemens.com/fr_FR/externaljobs/SearchJobs",
             domain="https://jobs.siemens.com",
             companyid=10,
+            save=save,
+            process_id=process_id,
+            is_test=is_test
         )
 
     def get_positions(self) -> list[str]:
@@ -153,8 +157,7 @@ class Siemens(BaseScraper):
                 country = parts[2]
 
         job_dict = {
-            "jobid": job_id_detail
-            or job_id,  # Utiliser l'ID détaillé ou extrait de l'URL
+            "jobid": time_ns(),
             "jobposition": jobposition,
             "jobdescription": job_description,
             "jobsalary": "",  # Non disponible dans le HTML fourni
