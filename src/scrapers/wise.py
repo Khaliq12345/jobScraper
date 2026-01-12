@@ -1,3 +1,4 @@
+import pycountry
 from time import sleep, time_ns
 from urllib.parse import urljoin
 
@@ -63,14 +64,19 @@ class Wise(BaseScraper):
             if category
             else ""
         )
-        country = soup.css_first('li[class="Locations-wrapper"]')
-        country = (
-            country.text(strip=True).replace(
+        location_node = soup.css_first('li[class="Locations-wrapper"]')
+        location = (
+            location_node.text(strip=True).replace(
                 "__vacancyopjusttionswidget.opt-Locations__", ""
             )
-            if country
+            if location_node
             else ""
         )
+        country_list = pycountry.countries.search_fuzzy(location)
+        if not country_list:
+            country = 'United States'
+        else:
+            country = country_list[0].name
 
         job_info = soup.css_first('div[aria-label="Job description"]')
         job_info = job_info.text(strip=True, separator=" ") if job_info else ""
@@ -86,6 +92,7 @@ class Wise(BaseScraper):
             "jobsalary": job_salary,
             "jobniche": category,
             "jobcountry": country,
+            "jobaddress": location,
             "scrapedsource": position_link,
         }
         return job_dict
