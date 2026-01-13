@@ -1,5 +1,6 @@
 import sys
-sys.path.append('.')
+
+sys.path.append(".")
 
 from sqlmodel import Session, create_engine, delete, select
 from src.storage.model import jobs, scraperStatus, Users
@@ -8,16 +9,16 @@ from config.config import DB_USER, DB_PASSWORD, DB_HOST, DB_DATABASE
 
 class Database:
     def __init__(self) -> None:
-        self.engine = create_engine(f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_DATABASE}")
+        self.engine = create_engine(
+            f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_DATABASE}"
+        )
         self.engine2 = create_engine("sqlite:///scraper.db")
         self.create_db_and_tables()
 
-
     def create_db_and_tables(self):
-        jobs.metadata.create_all(self.engine) 
+        jobs.metadata.create_all(self.engine)
         scraperStatus.metadata.create_all(self.engine2)
         Users.metadata.create_all(self.engine2)
-
 
     def get_jobs(self) -> list[dict]:
         with Session(bind=self.engine) as session:
@@ -33,7 +34,6 @@ class Database:
             session.add(job)
             session.commit()
         print("JOB SENT")
-
 
     def delete_jobs_by_company(self, company_id: int) -> int:
         """Delete all jobs for a specific company. Returns count of deleted jobs."""
@@ -61,7 +61,7 @@ class Database:
             else:
                 # Create new record
                 session.add(info)
-            
+
             session.commit()
 
     def update_process_id(self, platform: str, process_id: int) -> None:
@@ -77,9 +77,14 @@ class Database:
                 # Optionally raise an exception or log if record doesn't exist
                 raise ValueError(f"No record found for platform: {platform}")
 
-    def get_all_process(self) -> list[scraperStatus]:
+    def get_all_process(self, name: str | None = None) -> list[scraperStatus]:
         with Session(bind=self.engine2) as session:
-            stmt = select(scraperStatus)
+            if name:
+                stmt = select(scraperStatus).where(
+                    scraperStatus.platform.startswith(name)
+                )
+            else:
+                stmt = select(scraperStatus)
             processes = session.exec(stmt).all()
             return list(processes)
 
@@ -89,7 +94,7 @@ class Database:
             process = session.exec(stmt).first()
             return process
 
-    def update_process_status(self, status: str, platform: str) -> None:        
+    def update_process_status(self, status: str, platform: str) -> None:
         with Session(bind=self.engine2) as session:
             stmt = select(scraperStatus).where(scraperStatus.platform == platform)
             process = session.exec(stmt).first()
@@ -108,13 +113,11 @@ class Database:
                 return True
             return False
 
-
-    #---------------------------USERS-------------------------------
+    # ---------------------------USERS-------------------------------
     def create_user(self, username: str, password: str) -> None:
         with Session(bind=self.engine2) as session:
             session.add(Users(username=username, password=password))
             session.commit()
-
 
     def get_user(self, username: str) -> None | Users:
         with Session(bind=self.engine2) as session:
@@ -131,11 +134,8 @@ class Database:
             session.commit()
             session.refresh(user)  # Add this
             return user  # Add this
-            
 
 
 if __name__ == "__main__":
     db = Database()
     db.get_jobs()
-
-

@@ -1,3 +1,4 @@
+from src.scrapers.greenhouse import GreenHouse
 from src.scrapers.workdayjobs import Workday
 from src.storage.database import Database
 from multiprocessing import Process
@@ -24,107 +25,148 @@ from src.scrapers.sysco import Sysco
 from src.scrapers.verizon import Verizon
 
 
-def start_workday_task(db: Database, save_to_db: bool, jobserver_id: int, platform_link: str, name: str, is_test: bool) -> bool: 
+def start_custom_task(
+    db: Database,
+    save_to_db: bool,
+    jobserver_id: int,
+    platform_link: str,
+    name: str,
+    is_test: bool,
+) -> bool:
     # Start process
     print(save_to_db, jobserver_id, platform_link, name, is_test, False)
-    p = Process(target=run_scraper_task, args=(save_to_db, jobserver_id, platform_link, name, is_test, False))
+    p = Process(
+        target=run_scraper_task,
+        args=(save_to_db, jobserver_id, platform_link, name, is_test, False),
+    )
     p.start()
-    
+
     # Wait a bit for process to start
     time.sleep(2)
-    
+
     # Update database with process info
     if p.pid:
-        db.update_status(scraperStatus(
-            id=jobserver_id,
-            platform=name,
-            platform_url=platform_link,
-            status='running',
-            process_id=p.pid
-        ))
+        db.update_status(
+            scraperStatus(
+                id=jobserver_id,
+                platform=name,
+                platform_url=platform_link,
+                status="running",
+                process_id=p.pid,
+            )
+        )
         return True
     return False
 
 
-def start_generic_scraper(db: Database, jobserver_id: int, is_test:bool, save_to_db: bool, name: str, platform_link: str):
-    print('STARTING GENERIC SCRAPER')
+def start_generic_scraper(
+    db: Database,
+    jobserver_id: int,
+    is_test: bool,
+    save_to_db: bool,
+    name: str,
+    platform_link: str,
+):
+    print("STARTING GENERIC SCRAPER")
     print(save_to_db, jobserver_id, platform_link, name, is_test, False)
 
     # Start process
-    p = Process(target=run_scraper_task, args=(save_to_db, jobserver_id, platform_link, name, is_test, True))
+    p = Process(
+        target=run_scraper_task,
+        args=(save_to_db, jobserver_id, platform_link, name, is_test, True),
+    )
     p.start()
-    
+
     # Wait a bit for process to start
     time.sleep(2)
-    
+
     # Update database with process info
     if p.pid:
-        db.update_status(scraperStatus(
-            id=jobserver_id,
-            platform=name,
-            platform_url=platform_link,
-            status='running',
-            process_id=p.pid
-        ))
+        db.update_status(
+            scraperStatus(
+                id=jobserver_id,
+                platform=name,
+                platform_url=platform_link,
+                status="running",
+                process_id=p.pid,
+            )
+        )
         return True
     return False
 
 
-def run_scraper_task(save_to_db: bool, companyid: int, user_link: str, name: str, is_test: bool, is_generic: bool):
+def run_scraper_task(
+    save_to_db: bool,
+    companyid: int,
+    user_link: str,
+    name: str,
+    is_test: bool,
+    is_generic: bool,
+):
     db = Database()
     db.delete_jobs_by_company(companyid)
     if is_generic:
-      scraper = None
-      match name:
-        case 'Wise':
-          scraper = Wise(save=save_to_db, process_id=0, is_test=is_test)
-        case 'Adidas':
-          scraper = Adidas(save=save_to_db, process_id=0, is_test=is_test)
-        case 'Airbnb': 
-          scraper = Airbnb(save=save_to_db, process_id=0, is_test=is_test)
-        case 'Apple':
-            scraper = Apple(save=save_to_db, process_id=0, is_test=is_test)
-        case 'ATT':
-            scraper = ATT(save=save_to_db, process_id=0, is_test=is_test)
-        case 'Bank of America':
-              scraper = BankOfAmerica(save=save_to_db, process_id=0, is_test=is_test)
-        case 'Capitec Bank':
-            scraper = CapitecBank(save=save_to_db, process_id=0, is_test=is_test)
-        case 'Cisco':
-            scraper = Cisco(save=save_to_db, process_id=0, is_test=is_test)
-        case 'Coinbase':
-            scraper = Coinbase(save=save_to_db, process_id=0, is_test=is_test)
-        case 'Ecolab':
-            scraper = Ecolab(save=save_to_db, process_id=0, is_test=is_test)
-        case 'Google':
-            scraper = Google(save=save_to_db, process_id=0, is_test=is_test)
-        case 'Capgemini':
-            scraper = Capgemini(save=save_to_db, process_id=0, is_test=is_test)
-        case 'Dangote':
-            scraper = Dangote(save=save_to_db, process_id=0, is_test=is_test)
-        case 'Huawei':
-            scraper = HUAWEI(save=save_to_db, process_id=0, is_test=is_test)
-        case 'Julius Berger':
-            scraper = JB(save=save_to_db, process_id=0, is_test=is_test)
-        case 'Sanofi':
-            scraper = Sanofi(save=save_to_db, process_id=0, is_test=is_test)
-        case 'Siemens':
-            scraper = Siemens(save=save_to_db, process_id=0, is_test=is_test)
-        case 'Sysco':
-            scraper = Sysco(save=save_to_db, process_id=0, is_test=is_test)
-        case 'Verizon':
-            scraper = Verizon(save=save_to_db, process_id=0, is_test=is_test)
+        scraper = None
+        match name:
+            case "Wise":
+                scraper = Wise(save=save_to_db, process_id=0, is_test=is_test)
+            case "Adidas":
+                scraper = Adidas(save=save_to_db, process_id=0, is_test=is_test)
+            case "Airbnb":
+                scraper = Airbnb(save=save_to_db, process_id=0, is_test=is_test)
+            case "Apple":
+                scraper = Apple(save=save_to_db, process_id=0, is_test=is_test)
+            case "ATT":
+                scraper = ATT(save=save_to_db, process_id=0, is_test=is_test)
+            case "Bank of America":
+                scraper = BankOfAmerica(save=save_to_db, process_id=0, is_test=is_test)
+            case "Capitec Bank":
+                scraper = CapitecBank(save=save_to_db, process_id=0, is_test=is_test)
+            case "Cisco":
+                scraper = Cisco(save=save_to_db, process_id=0, is_test=is_test)
+            case "Coinbase":
+                scraper = Coinbase(save=save_to_db, process_id=0, is_test=is_test)
+            case "Ecolab":
+                scraper = Ecolab(save=save_to_db, process_id=0, is_test=is_test)
+            case "Google":
+                scraper = Google(save=save_to_db, process_id=0, is_test=is_test)
+            case "Capgemini":
+                scraper = Capgemini(save=save_to_db, process_id=0, is_test=is_test)
+            case "Dangote":
+                scraper = Dangote(save=save_to_db, process_id=0, is_test=is_test)
+            case "Huawei":
+                scraper = HUAWEI(save=save_to_db, process_id=0, is_test=is_test)
+            case "Julius Berger":
+                scraper = JB(save=save_to_db, process_id=0, is_test=is_test)
+            case "Sanofi":
+                scraper = Sanofi(save=save_to_db, process_id=0, is_test=is_test)
+            case "Siemens":
+                scraper = Siemens(save=save_to_db, process_id=0, is_test=is_test)
+            case "Sysco":
+                scraper = Sysco(save=save_to_db, process_id=0, is_test=is_test)
+            case "Verizon":
+                scraper = Verizon(save=save_to_db, process_id=0, is_test=is_test)
 
-      if not scraper:
-        return False
+        if not scraper:
+            return False
 
     else:
-      scraper = Workday(
-          save=save_to_db,
-          companyid=companyid,
-          user_link=user_link,
-          name=name,
-          is_test=is_test,
-          process_id=0
-      )
+        if "Workday" in name:
+            scraper = Workday(
+                save=save_to_db,
+                companyid=companyid,
+                user_link=user_link,
+                name=name,
+                is_test=is_test,
+                process_id=0,
+            )
+        elif "Greenhouse" in name:
+            scraper = GreenHouse(
+                save=save_to_db,
+                companyid=companyid,
+                user_link=user_link,
+                name=name,
+                is_test=is_test,
+                process_id=0,
+            )
     scraper.main()
