@@ -2,7 +2,7 @@ import sys
 
 sys.path.append(".")
 
-from sqlmodel import Session, create_engine, delete, select
+from sqlmodel import Session, create_engine, delete, func, select
 from src.storage.model import jobs, scraperStatus, Users
 from config.config import DB_USER, DB_PASSWORD, DB_HOST, DB_DATABASE
 
@@ -78,11 +78,12 @@ class Database:
                 raise ValueError(f"No record found for platform: {platform}")
 
     def get_all_process(
-        self, name: str | None = None, page: int = 1
+        self, name: str | None = None, page: int = 1, filter: dict = {}
     ) -> list[scraperStatus]:
         limit = 10
         offset = (page - 1) * limit
-
+        search_name = filter.get("search")
+        status = filter.get("status")
         with Session(bind=self.engine2) as session:
             if name:
                 stmt = select(scraperStatus).where(
@@ -90,6 +91,12 @@ class Database:
                 )
             else:
                 stmt = select(scraperStatus)
+            if search_name:
+                stmt = stmt.where(
+                    func.lower(scraperStatus.platform).contains(search_name.lower())
+                )
+            if (status) and (status != "all"):
+                stmt = stmt.where(scraperStatus.status == status)
 
             stmt = stmt.offset(offset).limit(limit)
             processes = session.exec(stmt).all()

@@ -22,7 +22,6 @@ class ProgressDisplay:
         self.container = None
         self.name = name
         self.page = 1
-        self.total = 0
         self._render()
 
     def _render(self):
@@ -83,11 +82,13 @@ class ProgressDisplay:
 
     def _filter_changed(self, new_filter: str):
         """Handle filter change"""
+        self.page = 1
         self.status_filter = new_filter
         self._update_display()
 
     def _search_changed(self, search_value: str):
         """Handle search query change"""
+        self.page = 1
         self.search_query = search_value.lower() if search_value else ""
         self._update_display()
 
@@ -102,50 +103,26 @@ class ProgressDisplay:
             return
         self.container.clear()
 
-        all_progress = self.db.get_all_process(name=self.name, page=self.page)
-        self.total = len(all_progress)
+        all_progress = self.db.get_all_process(
+            name=self.name,
+            page=self.page,
+            filter={"search": self.search_query, "status": self.status_filter},
+        )
 
         if not all_progress:
             with self.container:
                 ui.label("No progress data available yet.").classes("text-gray-500")
             return
 
-        # Apply status filter
-        if self.status_filter == "all":
-            filtered = all_progress
-        else:
-            filtered = [d for d in all_progress if d.status == self.status_filter]
-
-        # Apply search filter by name/URL
-        if self.search_query:
-            filtered = [
-                d
-                for d in filtered
-                if self.search_query in d.platform.lower()
-                or self.search_query in d.platform_url.lower()
-            ]
-
-        if not filtered:
-            with self.container:
-                if self.search_query:
-                    ui.label(f'No results found for "{self.search_query}"').classes(
-                        "text-gray-500"
-                    )
-                else:
-                    ui.label(f"No sites with status: {self.status_filter}").classes(
-                        "text-gray-500"
-                    )
-            return
-
         # Show result count
         with self.container:
-            ui.label(
-                f"Showing {len(filtered)} of {len(all_progress)} scrapers"
-            ).classes("text-sm text-gray-500 mb-2")
+            ui.label(f"Showing {len(all_progress)} scrapers").classes(
+                "text-sm text-gray-500 mb-2"
+            )
 
         # Render each process card
         with self.container:
-            for data in filtered:
+            for data in all_progress:
                 self._render_process_card(data)
 
     def _render_process_card(self, data):
