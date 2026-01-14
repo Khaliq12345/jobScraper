@@ -48,7 +48,7 @@ class Database:
     # -----------------PROCESSES-------------------------------
     def update_status(self, info: scraperStatus) -> None:
         with Session(bind=self.engine2) as session:
-            stmt = select(scraperStatus).where(scraperStatus.platform == info.platform)
+            stmt = select(scraperStatus).where(scraperStatus.id == info.id)
             status = session.exec(stmt).first()
             if status:
                 # Update existing record
@@ -58,6 +58,8 @@ class Database:
                 status.failed = info.failed
                 status.status = info.status
                 status.last_updated = info.last_updated
+                status.platform_url = info.platform_url
+                status.platform = info.platform
             else:
                 # Create new record
                 session.add(info)
