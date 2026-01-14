@@ -6,7 +6,9 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "cloudscraper>=1.2.71",
+    "country-capitals>=1.0.1",
     "country-named-entity-recognition>=1.0.2",
+    "countryinfo>=0.1.2",
     "geopy>=2.4.1",
     "httpx>=0.28.1",
     "locationtagger>=0.0.1",

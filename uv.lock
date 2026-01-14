@@ -530,6 +530,18 @@ wheels = [
 ]
 
 [[package]]
+name = "country-capitals"
+version = "1.0.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pycountry" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ab/bf/adbfdb42b4c3509f337278774de9726315abc0120cf71e567f319b1f62a3/country_capitals-1.0.1.tar.gz", hash = "sha256:ea76b17017ec6b0fd59d211666e538302e93ffaa03f02965fed163bd1fcca83d", size = 7283, upload-time = "2025-01-22T02:12:40.126Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/40/a7/4e056ea4c635dae9d3c4ad10bcdadca02cca19d064998766d97d37ef4aa0/country_capitals-1.0.1-py3-none-any.whl", hash = "sha256:779b5ec94411ea30c0ac9dce18acb2744888522390e49b33d8b4d2d5268b048c", size = 6801, upload-time = "2025-01-22T02:12:38.517Z" },
+]
+
+[[package]]
 name = "country-named-entity-recognition"
 version = "1.0.2"
 source = { registry = "https://pypi.org/simple" }
@@ -539,6 +551,14 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/df/4e/934faa310196683b64a94ed17160aad1ca69bfe19e64a9e14d033c128dd1/country_named_entity_recognition-1.0.2.tar.gz", hash = "sha256:136f8be97ae7519058e4bb06b78d1c405e0d106131c6ded696cf9ff6050be061", size = 22784, upload-time = "2025-09-09T13:46:06.985Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/26/90/281a16e1787d450350ed07125d7e896c9df4e89c6cac3454cb412afdb44e/country_named_entity_recognition-1.0.2-py3-none-any.whl", hash = "sha256:cc545e5aea1371509e3b35d2e4e90e47826a88fefd70da01b9d5cf4f1a705058", size = 13611, upload-time = "2025-09-09T13:46:05.876Z" },
+]
+
+[[package]]
+name = "countryinfo"
+version = "0.1.2"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/55/16/9fa55d43ae8ee969b75b3977d45f6640bb6c0e52d9912af11593e112a3cc/countryinfo-0.1.2-py3-none-any.whl", hash = "sha256:fd518b3fd8899f6520518320ac17b67bf410c7db5044c61cb191f802bb85c34d", size = 602240, upload-time = "2020-06-01T15:00:09.025Z" },
 ]
 
 [[package]]
@@ -1046,7 +1066,9 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "cloudscraper" },
+    { name = "country-capitals" },
     { name = "country-named-entity-recognition" },
+    { name = "countryinfo" },
     { name = "geopy" },
     { name = "httpx" },
     { name = "locationtagger" },
@@ -1070,7 +1092,9 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "cloudscraper", specifier = ">=1.2.71" },
+    { name = "country-capitals", specifier = ">=1.0.1" },
     { name = "country-named-entity-recognition", specifier = ">=1.0.2" },
+    { name = "countryinfo", specifier = ">=0.1.2" },
     { name = "geopy", specifier = ">=2.4.1" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "locationtagger", specifier = ">=0.0.1" },

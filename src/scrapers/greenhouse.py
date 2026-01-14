@@ -4,6 +4,8 @@ import requests
 from selectolax.parser import HTMLParser
 from src.scrapers.base.base_scraper import BaseScraper
 from urllib.parse import urlparse
+import pycountry
+from src.utils.static import CAPITALS, US_STATES
 
 headers = {
     "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0",
@@ -38,6 +40,32 @@ class GreenHouse(BaseScraper):
             is_test=is_test,
             process_id=process_id,
         )
+
+    def find_country_by_location(self, location_name: str):
+        """
+        Find country by capital city or US state name.
+
+        Args:
+            location_name: Name of capital city or US state
+
+        Returns:
+            Country name or None if not found
+        """
+        location_lower = location_name.lower().strip()
+
+        # First check if it's a US state
+        if location_lower in US_STATES:
+            country_code = US_STATES[location_lower]
+            country = pycountry.countries.get(alpha_2=country_code)
+            return country.name if country else "United States"
+
+        # Then check if it's a capital
+        if location_lower in CAPITALS:
+            country_code = CAPITALS[location_lower]
+            country = pycountry.countries.get(alpha_2=country_code)
+            return country.name if country else None
+
+        return None
 
     def get_positions(self) -> list[dict]:
         print(f"LINK = {self.link} - Name - {self.name}")
@@ -105,11 +133,14 @@ class GreenHouse(BaseScraper):
 
         try:
             location = job_info["location"]
+            print(f"LOCATION - {location}")
             country = find_countries(location)[0][0].name
             jobaddress = location.replace(country, "").strip()
         except Exception as _:
             country = None
+            country = self.find_country_by_location(location.split(",")[0].strip())
             jobaddress = location
+        print(f"COUNTRY - {country}")
         jobniche = job_info["department"]
         job_dict = {
             "jobid": time_ns(),
@@ -123,5 +154,4 @@ class GreenHouse(BaseScraper):
             "jobsalary": jobsalary,
             "scrapedsource": joblink,
         }
-        print(job_dict)
         return job_dict
