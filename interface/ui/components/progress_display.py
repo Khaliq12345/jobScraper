@@ -21,6 +21,8 @@ class ProgressDisplay:
         self.search_query = ""
         self.container = None
         self.name = name
+        self.page = 1
+        self.total = 0
         self._render()
 
     def _render(self):
@@ -30,17 +32,14 @@ class ProgressDisplay:
             ui.button("Refresh", on_click=self._refresh, icon="refresh").props(
                 "flat color=primary"
             )
-
         ui.separator()
 
         # Filter and search row
         with ui.row().classes("w-full gap-4 mb-4 items-center"):
             # Status filter
             ui.label("Filter by status:").classes("text-sm font-medium")
-
-            all_progress = self.db.get_all_process(self.name)
+            all_progress = self.db.get_all_process(self.name, page=self.page)
             statuses = ["all"] + list(set(data.status for data in all_progress))
-
             status_select = (
                 ui.select(
                     statuses,
@@ -50,22 +49,36 @@ class ProgressDisplay:
                 .props("outlined dense")
                 .classes("w-40")
             )
-
             # Search by name
             ui.label("Search by name:").classes("text-sm font-medium ml-4")
-
             search_input = (
                 ui.input(placeholder="Enter platform name or URL...")
                 .props("outlined dense clearable")
                 .classes("flex-1")
             )
-
             search_input.on_value_change(lambda e: self._search_changed(e.value))
 
         ui.separator()
 
         # Progress container
         self.container = ui.column().classes("w-full gap-4")
+
+        # Pagination controls
+        with ui.row().classes("w-full gap-4 mt-4 items-center justify-center"):
+            ui.button(
+                "Previous", on_click=self._previous_page, icon="chevron_left"
+            ).props("flat color=primary").bind_enabled_from(
+                self, "page", lambda p: p > 1
+            )
+
+            self.page_label = ui.label(f"Page {self.page}").classes(
+                "text-sm font-medium mx-4"
+            )
+
+            ui.button("Next", on_click=self._next_page, icon="chevron_right").props(
+                "flat color=primary"
+            )
+
         self._update_display()
 
     def _filter_changed(self, new_filter: str):
@@ -89,7 +102,8 @@ class ProgressDisplay:
             return
         self.container.clear()
 
-        all_progress = self.db.get_all_process(name=self.name)
+        all_progress = self.db.get_all_process(name=self.name, page=self.page)
+        self.total = len(all_progress)
 
         if not all_progress:
             with self.container:
@@ -258,3 +272,16 @@ class ProgressDisplay:
             self._update_display()
         except Exception as e:
             ui.notify(f"Error Starting {data.platform} - {str(e)}", type="negative")
+
+    def _previous_page(self):
+        """Go to previous page"""
+        if self.page > 1:
+            self.page -= 1
+            self.page_label.set_text(f"Page {self.page}")
+            self._update_display()
+
+    def _next_page(self):
+        """Go to next page"""
+        self.page += 1
+        self.page_label.set_text(f"Page {self.page}")
+        self._update_display()

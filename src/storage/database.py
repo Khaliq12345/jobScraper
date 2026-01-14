@@ -77,7 +77,12 @@ class Database:
                 # Optionally raise an exception or log if record doesn't exist
                 raise ValueError(f"No record found for platform: {platform}")
 
-    def get_all_process(self, name: str | None = None) -> list[scraperStatus]:
+    def get_all_process(
+        self, name: str | None = None, page: int = 1
+    ) -> list[scraperStatus]:
+        limit = 10
+        offset = (page - 1) * limit
+
         with Session(bind=self.engine2) as session:
             if name:
                 stmt = select(scraperStatus).where(
@@ -85,6 +90,8 @@ class Database:
                 )
             else:
                 stmt = select(scraperStatus)
+
+            stmt = stmt.offset(offset).limit(limit)
             processes = session.exec(stmt).all()
             return list(processes)
 

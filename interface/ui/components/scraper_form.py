@@ -35,7 +35,7 @@ class ScraperForm:
         )
 
         # Checkboxes
-        save_to_db = ui.checkbox("Save to DB", value=False)
+        save_to_db = ui.checkbox("Save to DB", value=True)
         is_test = ui.checkbox("Perform Test Run", value=False)
 
         # Error/message container
