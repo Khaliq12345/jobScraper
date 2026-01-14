@@ -71,7 +71,9 @@ class Workday(BaseScraper):
                 break
 
             for job in postings:
-                job_path = job["externalPath"]
+                job_path = job.get("externalPath")
+                if not job_path:
+                    continue
                 job_link = f"{self.domain}{job_path}"
                 jobs.append(job_link)
 
