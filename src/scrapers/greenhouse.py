@@ -138,7 +138,7 @@ class GreenHouse(BaseScraper):
             jobaddress = location.replace(country, "").strip()
         except Exception as _:
             country = None
-            country = self.find_country_by_location(location.split(",")[0].strip())
+            country = self.find_country_by_location(location.split(",")[-1].strip())
             jobaddress = location
         print(f"COUNTRY - {country}")
         jobniche = job_info["department"]
