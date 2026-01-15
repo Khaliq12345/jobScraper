@@ -38,7 +38,7 @@ class ProgressDisplay:
             # Status filter
             ui.label("Filter by status:").classes("text-sm font-medium")
             all_progress = self.db.get_all_process(self.name, page=self.page)
-            statuses = ["all"] + list(set(data.status for data in all_progress))
+            statuses = ["all", "failed", "interrupted", "completed", "running"]
             status_select = (
                 ui.select(
                     statuses,
