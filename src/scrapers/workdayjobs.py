@@ -102,7 +102,7 @@ class Workday(BaseScraper):
             country = None
         joblink = job_info["externalUrl"]
         jobaddress = job_info["location"]
-
+        jobdate = job_info["postedOn"]
         job_dict = {
             "jobid": time_ns(),
             "companyid": self.companyid,
@@ -113,5 +113,6 @@ class Workday(BaseScraper):
             "jobpattern": jobpattern,
             "scrapedsource": joblink,
             "parse_location": True,
+            "jobdate": jobdate,
         }
         return job_dict

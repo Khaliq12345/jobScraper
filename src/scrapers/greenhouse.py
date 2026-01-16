@@ -90,6 +90,7 @@ class GreenHouse(BaseScraper):
                     "location": job["location"],
                     "department": job.get("department", {}).get("name"),
                     "url": job["absolute_url"],
+                    "jobdate": job["published_at"],
                 }
                 all_jobs.append(job_info)
 
@@ -148,6 +149,7 @@ class GreenHouse(BaseScraper):
             "jobposition": jobposition,
             "jobdescription": jobdescription,
             "jobcountry": country,
+            "jobdate": job_info["jobdate"],
             "jobaddress": jobaddress,
             "jobpattern": jobpattern,
             "jobniche": jobniche,

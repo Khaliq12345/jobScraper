@@ -20,6 +20,7 @@ class jobs(SQLModel, table=True):
     scrapedsource: str
     editpin: str = "end"
     jobscraper: str = "Loicx"
+    jobdate: str | None = None
 
 
 class scraperStatus(SQLModel, table=True):
