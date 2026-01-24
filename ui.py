@@ -35,6 +35,11 @@ def workday_dashboard():
     DashboardPage(db, auth, "Workday").main()
 
 
+@ui.page("/workable-scraper")
+def workable_dashboard():
+    DashboardPage(db, auth, "Workable").main()
+
+
 @ui.page("/greenhouse-scraper")
 def greenhouse_dashboard():
     DashboardPage(db, auth, "Greenhouse").main()

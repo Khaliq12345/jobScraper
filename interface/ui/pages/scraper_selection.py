@@ -91,6 +91,12 @@ class ScraperSelectionPage:
                         "color": "green-600",
                         "path": "/greenhouse-scraper",
                     },
+                    {
+                        "name": "Workable",
+                        "icon": "work",
+                        "color": "red-600",
+                        "path": "/workable-scraper",
+                    },
                 ]
 
                 # 2. Use a responsive grid container (1 col on mobile, 2 on tablet, 3 on desktop)

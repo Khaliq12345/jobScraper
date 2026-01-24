@@ -23,6 +23,7 @@ from src.scrapers.new_sanofi import Sanofi
 from src.scrapers.siemens import Siemens
 from src.scrapers.sysco import Sysco
 from src.scrapers.verizon import Verizon
+from src.scrapers.workable import Workable
 
 
 def start_custom_task(
@@ -162,6 +163,15 @@ def run_scraper_task(
             )
         elif "Greenhouse" in name:
             scraper = GreenHouse(
+                save=save_to_db,
+                companyid=companyid,
+                user_link=user_link,
+                name=name,
+                is_test=is_test,
+                process_id=0,
+            )
+        elif "Workable" in name:
+            scraper = Workable(
                 save=save_to_db,
                 companyid=companyid,
                 user_link=user_link,
