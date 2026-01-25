@@ -40,6 +40,7 @@ class BaseScraper(Database):
     def validate_data(self, job_details: dict):
         """Validate Scraped job info"""
         scraped_job = jobs(**job_details)
+        print(scraped_job.scrapedsource)
 
         # Job qualification
         if not scraped_job.jobqualifications:

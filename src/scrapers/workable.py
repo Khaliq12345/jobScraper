@@ -16,10 +16,10 @@ class Workable(BaseScraper):
         is_test: bool = False,
     ) -> None:
         parsed_url = urlparse(user_link)
-        path = parsed_url.path.split("/")[-1]
+        splits = parsed_url.path.split("/")
         super().__init__(
-            name=f"Workable-{path}",
-            link=f"https://jobs.workable.com/api/v1/companies/{path}",
+            name=f"Workable-{splits[-1]}",
+            link=f"https://jobs.workable.com/api/v1/companies/{splits[-2]}",
             domain="",
             companyid=companyid,
             save=save,
