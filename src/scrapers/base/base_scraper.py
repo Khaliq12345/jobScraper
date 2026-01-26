@@ -15,8 +15,9 @@ class BaseScraper(Database):
         link: str,
         process_id: int,
         companyid: int,
-        domain: str = "",
+        domain: str,
         is_test: bool = False,
+        base_link: str | None = None,
     ) -> None:
         super().__init__()
         self.name = name
@@ -27,6 +28,7 @@ class BaseScraper(Database):
         self.is_test = is_test
         self.process_id = process_id
         self.create_db_and_tables()
+        self.base_link = base_link if base_link else link
 
     @staticmethod
     def get_html(url: str) -> str:
@@ -302,7 +304,7 @@ class BaseScraper(Database):
         status_info = scraperStatus(
             id=self.companyid,
             platform=data["platform"],
-            platform_url=self.link,
+            platform_url=self.base_link,
             total=data["total"],
             current=data["current"],
             successful=data["successful"],

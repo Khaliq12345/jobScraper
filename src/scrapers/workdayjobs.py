@@ -35,6 +35,7 @@ class Workday(BaseScraper):
             name=f"Workday-{username}",
             link=f"https://{domain}/wday/cxs/{username}/{path}/jobs",
             domain=f"https://{domain}/wday/cxs/{username}/{path}",
+            base_link=user_link,
             companyid=companyid,
             save=save,
             is_test=is_test,

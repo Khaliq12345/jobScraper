@@ -21,6 +21,7 @@ class Workable(BaseScraper):
             name=f"Workable-{splits[-1]}",
             link=f"https://jobs.workable.com/api/v1/companies/{splits[-2]}",
             domain="",
+            base_link=user_link,
             companyid=companyid,
             save=save,
             is_test=is_test,
