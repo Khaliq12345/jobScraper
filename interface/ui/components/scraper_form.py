@@ -2,11 +2,13 @@
 Scraper form component for starting new scrapers
 """
 
+from time import sleep
 from nicegui import ui
 from urllib.parse import urlparse
 from src.storage.database import Database
 from interface.middleware.auth import AuthMiddleware
 from interface.utils.start_scraper import start_custom_task
+from multiprocessing import Process
 
 
 class ScraperForm:
@@ -104,6 +106,37 @@ class ScraperForm:
                 with message_container:
                     ui.notify(f"Error starting scraper: {str(e)}", type="negative")
 
-        ui.button("Start Scraper", on_click=start_scraper, icon="play_arrow").props(
-            "color=primary"
-        ).classes("mt-4")
+        def start_all_scraper_process(self):
+            p = Process(target=self.start_all_scraper)
+            p.start()
+            p.join()
+
+        def start_all_scraper():
+            processes = self.db.get_all_process(name=self.name)
+            for process in processes:
+                print(process.id, process.platform_url, process.platform)
+                is_started = start_custom_task(
+                    self.db,
+                    jobserver_id=process.id,
+                    platform_link=process.platform_url,
+                    name=process.platform,
+                    save_to_db=True,
+                    is_test=False,
+                )
+                if is_started:
+                    while True:
+                        process_update = self.db.get_process(process.id)
+                        print(process_update)
+                        if process_update.status != "running":
+                            break
+                        sleep(10)
+
+        with ui.element("div").classes("flex space-x-4"):
+            ui.button("Start Scraper", on_click=start_scraper, icon="play_arrow").props(
+                "color=primary"
+            ).classes("mt-4")
+            ui.button(
+                "Start All Scrapers",
+                on_click=start_all_scraper_process,
+                icon="play_arrow",
+            ).props("color=primary").classes("mt-4")
