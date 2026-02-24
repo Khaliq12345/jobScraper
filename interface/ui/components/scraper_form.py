@@ -2,19 +2,40 @@
 Scraper form component for starting new scrapers
 """
 
+import json
+import tempfile
+import os
 from time import sleep
 from nicegui import ui, run
 from urllib.parse import urlparse
 from src.storage.database import Database
 from interface.middleware.auth import AuthMiddleware
 from interface.utils.start_scraper import start_custom_task
-from multiprocessing import Process
 
 
-def start_all_scraper(name: str):
+def _write_progress(
+    filepath: str, current: int, total: int, label: str, done: bool = False
+):
+    """Write progress state to a temp file as JSON."""
+    with open(filepath, "w") as f:
+        json.dump({"current": current, "total": total, "label": label, "done": done}, f)
+
+
+def start_all_scraper(name: str, progress_filepath: str):
+    """
+    Runs all scrapers sequentially, writing progress to a temp file
+    so the UI process can poll it safely.
+    """
     db = Database()
     processes = db.get_all_process(name=name)
-    for process in processes:
+    total = len(processes)
+
+    _write_progress(progress_filepath, 0, total, "Starting...")
+
+    for index, process in enumerate(processes):
+        label = f"Running {process.platform} ({index + 1}/{total})"
+        _write_progress(progress_filepath, index, total, label)
+
         print(process.id, process.platform_url, process.platform)
         is_started = start_custom_task(
             db,
@@ -24,6 +45,7 @@ def start_all_scraper(name: str):
             save_to_db=True,
             is_test=False,
         )
+
         if is_started:
             while True:
                 process_update = db.get_process(process.id)
@@ -31,6 +53,10 @@ def start_all_scraper(name: str):
                 if process_update.status != "running":
                     break
                 sleep(10)
+
+    _write_progress(
+        progress_filepath, total, total, "All scrapers completed!", done=True
+    )
 
 
 class ScraperForm:
@@ -65,10 +91,17 @@ class ScraperForm:
         # Error/message container
         message_container = ui.row().classes("w-full mt-4")
 
+        # --- Progress UI (hidden until "Start All" is running) ---
+        progress_section = ui.column().classes("w-full mt-4 gap-1")
+        progress_section.set_visibility(False)
+
+        with progress_section:
+            progress_label = ui.label("").classes("text-sm text-gray-500")
+            progress_bar = ui.linear_progress(value=0).props("color=primary rounded")
+
         def start_scraper():
             message_container.clear()
 
-            # Validate inputs
             if not platform_link.value or not jobserver_id.value:
                 with message_container:
                     ui.notify("Please fill in all required fields", type="negative")
@@ -81,7 +114,6 @@ class ScraperForm:
                     ui.notify("Job Server ID must be a number", type="negative")
                 return
 
-            # Parse platform name from URL
             try:
                 parsed_url = urlparse(platform_link.value)
                 username = parsed_url.path.replace("/", "")
@@ -91,7 +123,6 @@ class ScraperForm:
                     ui.notify(f"Invalid URL: {str(e)}", type="negative")
                 return
 
-            # Start scraper in background process
             try:
                 is_started = start_custom_task(
                     self.db,
@@ -105,13 +136,11 @@ class ScraperForm:
                     with message_container:
                         ui.notify("Scraper started successfully!", type="positive")
 
-                    # Clear form
                     platform_link.value = ""
                     jobserver_id.value = ""
                     save_to_db.value = False
                     is_test.value = False
 
-                    # Refresh the page to show new scraper
                     ui.timer(
                         1.0,
                         lambda: ui.navigate.to(f"/{self.name.lower()}-scraper"),
@@ -129,7 +158,40 @@ class ScraperForm:
                     ui.notify(f"Error starting scraper: {str(e)}", type="negative")
 
         async def start_all_scraper_process():
-            await run.cpu_bound(start_all_scraper, self.name)
+            # Create a temp file to share progress between processes.
+            # A plain filepath string is fully picklable — no Queue needed.
+            tmp = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
+            progress_filepath = tmp.name
+            tmp.close()
+
+            # Reset and show progress UI
+            progress_section.set_visibility(True)
+            progress_bar.set_value(0)
+            progress_label.set_text("Initializing...")
+
+            def poll_progress():
+                try:
+                    with open(progress_filepath, "r") as f:
+                        state = json.load(f)
+                except (FileNotFoundError, json.JSONDecodeError):
+                    return  # File not ready yet, try again next tick
+
+                total = state.get("total", 1) or 1  # avoid division by zero
+                current = state.get("current", 0)
+                label = state.get("label", "")
+                done = state.get("done", False)
+
+                progress_label.set_text(label)
+                progress_bar.set_value(current / total)
+
+                if done:
+                    timer.cancel()
+                    os.unlink(progress_filepath)  # Clean up temp file
+
+            timer = ui.timer(1.0, poll_progress)
+
+            # Pass only the filepath (a plain string) — fully picklable
+            await run.cpu_bound(start_all_scraper, self.name, progress_filepath)
 
         with ui.element("div").classes("flex space-x-4"):
             ui.button("Start Scraper", on_click=start_scraper, icon="play_arrow").props(
