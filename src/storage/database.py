@@ -12,13 +12,13 @@ class Database:
         self.engine = create_engine(
             f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_DATABASE}"
         )
-        self.engine2 = create_engine("sqlite:///scraper.db")
+        # self.engine2 = create_engine("sqlite:///scraper.db")
         self.create_db_and_tables()
 
     def create_db_and_tables(self):
         jobs.metadata.create_all(self.engine)
-        scraperStatus.metadata.create_all(self.engine2)
-        Users.metadata.create_all(self.engine2)
+        scraperStatus.metadata.create_all(self.engine)
+        Users.metadata.create_all(self.engine)
 
     def get_jobs(self) -> list[dict]:
         with Session(bind=self.engine) as session:
@@ -47,7 +47,7 @@ class Database:
 
     # -----------------PROCESSES-------------------------------
     def update_status(self, info: scraperStatus) -> None:
-        with Session(bind=self.engine2) as session:
+        with Session(bind=self.engine) as session:
             stmt = select(scraperStatus).where(scraperStatus.id == info.id)
             status = session.exec(stmt).first()
             if status:
@@ -68,7 +68,7 @@ class Database:
 
     def update_process_id(self, platform: str, process_id: int) -> None:
         print(f"Updating Process ID - {process_id}")
-        with Session(bind=self.engine2) as session:
+        with Session(bind=self.engine) as session:
             stmt = select(scraperStatus).where(scraperStatus.platform == platform)
             status = session.exec(stmt).first()
             if status:
@@ -86,7 +86,7 @@ class Database:
         offset = (page - 1) * limit
         search_name = filter.get("search")
         status = filter.get("status")
-        with Session(bind=self.engine2) as session:
+        with Session(bind=self.engine) as session:
             if name:
                 stmt = select(scraperStatus).where(
                     scraperStatus.platform.startswith(name)
@@ -105,13 +105,13 @@ class Database:
             return list(processes)
 
     def get_process(self, companyid: int):
-        with Session(bind=self.engine2) as session:
+        with Session(bind=self.engine) as session:
             stmt = select(scraperStatus).where(scraperStatus.id == companyid)
             process = session.exec(stmt).first()
             return process
 
     def update_process_status(self, status: str, platform: str) -> None:
-        with Session(bind=self.engine2) as session:
+        with Session(bind=self.engine) as session:
             stmt = select(scraperStatus).where(scraperStatus.platform == platform)
             process = session.exec(stmt).first()
             if process:
@@ -120,7 +120,7 @@ class Database:
 
     def delete_process(self, process_id: int) -> bool:
         """Delete a process record from the database"""
-        with Session(bind=self.engine2) as session:
+        with Session(bind=self.engine) as session:
             stmt = select(scraperStatus).where(scraperStatus.process_id == process_id)
             process = session.exec(stmt).first()
             if process:
@@ -131,17 +131,17 @@ class Database:
 
     # ---------------------------USERS-------------------------------
     def create_user(self, username: str, password: str) -> None:
-        with Session(bind=self.engine2) as session:
+        with Session(bind=self.engine) as session:
             session.add(Users(username=username, password=password))
             session.commit()
 
     def get_user(self, username: str) -> None | Users:
-        with Session(bind=self.engine2) as session:
+        with Session(bind=self.engine) as session:
             stmt = select(Users).where(Users.username == username)
             return session.exec(stmt).first()
 
     def update_user(self, username: str, password: str) -> None | Users:
-        with Session(bind=self.engine2) as session:
+        with Session(bind=self.engine) as session:
             stmt = select(Users).where(Users.username == username)
             user = session.exec(stmt).first()
             if not user:

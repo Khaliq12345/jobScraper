@@ -8,7 +8,12 @@ from src.scrapers.base.base_scraper import BaseScraper
 
 
 class Dangote(BaseScraper):
-    def __init__(self, save: bool, process_id: int, is_test: bool) -> None:
+    def __init__(
+        self,
+        save: bool,
+        process_id: int = 0,
+        is_test: bool = False,
+    ) -> None:
         super().__init__(
             name="Dangote",
             link="https://careers.dangote.com/tile-search-results/?q=&sortColumn=referencedate&sortDirection=desc&startrow=200&_=1766067820563",
@@ -16,7 +21,7 @@ class Dangote(BaseScraper):
             companyid=54,
             save=save,
             process_id=process_id,
-            is_test=is_test
+            is_test=is_test,
         )
 
     def get_positions(self) -> list[str]:
@@ -25,7 +30,7 @@ class Dangote(BaseScraper):
         html = self.get_html(f"{self.link}")
         soup = HTMLParser(html)
 
-        positions = soup.css('li')
+        positions = soup.css("li")
         print(f"ALL JOBS - {len(positions)}")
 
         for position in positions:
@@ -34,9 +39,7 @@ class Dangote(BaseScraper):
                 continue
             position_link = position_link.attributes.get("href")
             position_link = (
-                urljoin(self.domain, position_link)
-                if self.domain
-                else position_link
+                urljoin(self.domain, position_link) if self.domain else position_link
             )
             position_links.append(position_link)
 
@@ -47,11 +50,15 @@ class Dangote(BaseScraper):
         sleep(2)
 
         soup = HTMLParser(response.text)
-        jobposition = response.url.split('/job/')[-1].split('/')[0].replace('-', " ").title()
+        jobposition = (
+            response.url.split("/job/")[-1].split("/")[0].replace("-", " ").title()
+        )
         category = soup.css_first('span[class="sc-crgk9f-7 fMHCZe"]')
-        category = category.text(strip=True) if category else "" 
+        category = category.text(strip=True) if category else ""
         location = soup.css_first('p[id="job-location"]')
-        location = location.text(strip=True).replace("Location:", "") if location else ""
+        location = (
+            location.text(strip=True).replace("Location:", "") if location else ""
+        )
         country_finder = find_countries(location)
         jobcountry = ""
         if country_finder:
@@ -59,9 +66,10 @@ class Dangote(BaseScraper):
             if location.endswith(country):
                 jobcountry = country
 
-
         job_description = soup.css_first('span[class="jobdescription"]')
-        job_description = job_description.text(strip=True, separator=" ") if job_description else ""
+        job_description = (
+            job_description.text(strip=True, separator=" ") if job_description else ""
+        )
         years = self._extract_years_from_text(job_description)
         jobexperience = ""
         if years:
@@ -79,6 +87,7 @@ class Dangote(BaseScraper):
             "jobaddress": location,
             "scrapedsource": position_link,
             "jobexperience": jobexperience,
-            "parse_location": True
+            "parse_location": True,
+            "jobdate": "",
         }
         return job_dict
