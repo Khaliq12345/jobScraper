@@ -30,32 +30,32 @@ def signup():
     SignupPage(db, auth).main()
 
 
-@ui.page("/workday-scraper")
+@ui.page("/workday-scraper", title="Workday Scraper")
 def workday_dashboard():
     DashboardPage(db, auth, "Workday").main()
 
 
-@ui.page("/workable-scraper")
+@ui.page("/workable-scraper", title="Workable Scraper")
 def workable_dashboard():
     DashboardPage(db, auth, "Workable").main()
 
 
-@ui.page("/greenhouse-scraper")
+@ui.page("/greenhouse-scraper", title="Greenhouse Scraper")
 def greenhouse_dashboard():
     DashboardPage(db, auth, "Greenhouse").main()
 
 
-@ui.page("/lever-scraper")
+@ui.page("/lever-scraper", title="Lever Scraper")
 def lever_dashboard():
     DashboardPage(db, auth, "Lever").main()
 
 
-@ui.page("/generic-scraper")
+@ui.page("/generic-scraper", title="Generic Scraper")
 def generic_dashboard():
     ScraperListPage(db, auth).main()
 
 
-@ui.page("/dashboard")
+@ui.page("/dashboard", title="Dashboard")
 def dashboard():
     ScraperSelectionPage(db, auth).main()
 
