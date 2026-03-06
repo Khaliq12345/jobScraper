@@ -45,6 +45,11 @@ def greenhouse_dashboard():
     DashboardPage(db, auth, "Greenhouse").main()
 
 
+@ui.page("/lever-scraper")
+def lever_dashboard():
+    DashboardPage(db, auth, "Lever").main()
+
+
 @ui.page("/generic-scraper")
 def generic_dashboard():
     ScraperListPage(db, auth).main()

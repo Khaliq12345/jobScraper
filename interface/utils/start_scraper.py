@@ -1,3 +1,4 @@
+from src.scrapers.lever import Lever
 from src.scrapers.greenhouse import GreenHouse
 from src.scrapers.workdayjobs import Workday
 from src.storage.database import Database
@@ -104,8 +105,6 @@ def run_scraper_task(
     is_test: bool,
     is_generic: bool,
 ):
-    db = Database()
-    db.delete_jobs_by_company(companyid)
     if is_generic:
         scraper = None
         match name:
@@ -172,6 +171,15 @@ def run_scraper_task(
             )
         elif "Workable" in name:
             scraper = Workable(
+                save=save_to_db,
+                companyid=companyid,
+                user_link=user_link,
+                name=name,
+                is_test=is_test,
+                process_id=0,
+            )
+        elif "Lever" in name:
+            scraper = Lever(
                 save=save_to_db,
                 companyid=companyid,
                 user_link=user_link,

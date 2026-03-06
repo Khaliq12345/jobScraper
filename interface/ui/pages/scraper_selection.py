@@ -97,6 +97,12 @@ class ScraperSelectionPage:
                         "color": "red-600",
                         "path": "/workable-scraper",
                     },
+                    {
+                        "name": "Lever",
+                        "icon": "engineering",
+                        "color": "yellow-600",
+                        "path": "/lever-scraper",
+                    },
                 ]
 
                 # 2. Use a responsive grid container (1 col on mobile, 2 on tablet, 3 on desktop)
