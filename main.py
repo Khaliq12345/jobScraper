@@ -16,6 +16,7 @@ from src.scrapers import (
     workable,
     smartrecruiters,
     lever,
+    ashbyhq,
 )
 
 args = ArgumentParser()
@@ -43,6 +44,7 @@ if __name__ == "__main__":
         "Workable": workable.Workable,
         "Smartrecruiters": smartrecruiters.Smartrecruiters,
         "Lever": lever.Lever,
+        "Ashbyhq": ashbyhq.Ashbyhq,
     }
 
     # 2. Get the class from the dictionary using the string from arguments
@@ -51,10 +53,17 @@ if __name__ == "__main__":
     if target_class:
         # 3. Initialize the class and call main
         match parsed.name:
-            case "WorkdayJob" | "GreenHouse" | "Workable" | "Smartrecruiters" | "Lever":
+            case (
+                "WorkdayJob"
+                | "GreenHouse"
+                | "Workable"
+                | "Smartrecruiters"
+                | "Lever"
+                | "Ashbyhq"
+            ):
                 if parsed.user_link is None:
                     print(
-                        "Workday, GreenHouse, Smartrecruiters, Lever or Workable requires user_link"
+                        "Workday, GreenHouse, Smartrecruiters, Lever, Ashbyhq or Workable requires user_link"
                     )
                 else:
                     scraper = target_class(

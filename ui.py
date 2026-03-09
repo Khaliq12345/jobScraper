@@ -50,6 +50,11 @@ def lever_dashboard():
     DashboardPage(db, auth, "Lever").main()
 
 
+@ui.page("/ashbyhq-scraper", title="Ashbyhq Scraper")
+def ashbyhq_dashboard():
+    DashboardPage(db, auth, "Ashbyhq").main()
+
+
 @ui.page("/generic-scraper", title="Generic Scraper")
 def generic_dashboard():
     ScraperListPage(db, auth).main()
