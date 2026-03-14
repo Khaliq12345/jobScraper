@@ -38,6 +38,7 @@ class Database:
     def delete_jobs_by_company(self, company_id: int) -> int:
         """Delete all jobs for a specific company. Returns count of deleted jobs."""
         with Session(bind=self.engine) as session:
+            print("SEESION", session)
             stmt = delete(jobs).where(jobs.companyid == company_id)
             result = session.exec(stmt)
             session.commit()

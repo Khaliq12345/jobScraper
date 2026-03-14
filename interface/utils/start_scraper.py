@@ -1,3 +1,4 @@
+from src.scrapers.smartrecruiters import Smartrecruiters
 from src.scrapers.lever import Lever
 from src.scrapers.greenhouse import GreenHouse
 from src.scrapers.workdayjobs import Workday
@@ -197,4 +198,14 @@ def run_scraper_task(
                 is_test=is_test,
                 process_id=0,
             )
+        elif "Smartrecruiters" in name:
+            scraper = Smartrecruiters(
+                save=save_to_db,
+                companyid=companyid,
+                user_link=user_link,
+                name=name,
+                is_test=is_test,
+                process_id=0,
+            )
+
     scraper.main()

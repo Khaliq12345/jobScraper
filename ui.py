@@ -55,6 +55,11 @@ def ashbyhq_dashboard():
     DashboardPage(db, auth, "Ashbyhq").main()
 
 
+@ui.page("/smartrecruiters-scraper", title="Smartrecruiters Scraper")
+def smartrecruiters_dashboard():
+    DashboardPage(db, auth, "Smartrecruiters").main()
+
+
 @ui.page("/generic-scraper", title="Generic Scraper")
 def generic_dashboard():
     ScraperListPage(db, auth).main()

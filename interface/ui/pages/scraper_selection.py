@@ -109,6 +109,12 @@ class ScraperSelectionPage:
                         "color": "orange-600",
                         "path": "/ashbyhq-scraper",
                     },
+                    {
+                        "name": "Smartrecruiters",
+                        "icon": "manage_search",
+                        "color": "purple-600",
+                        "path": "/smartrecruiters-scraper",
+                    },
                 ]
 
                 # 2. Use a responsive grid container (1 col on mobile, 2 on tablet, 3 on desktop)
