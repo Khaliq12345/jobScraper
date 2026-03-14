@@ -49,7 +49,11 @@ class Database:
     # -----------------PROCESSES-------------------------------
     def update_status(self, info: scraperStatus) -> None:
         with Session(bind=self.engine) as session:
-            stmt = select(scraperStatus).where(scraperStatus.id == info.id)
+            stmt = (
+                select(scraperStatus)
+                .where(scraperStatus.id == info.id)
+                .where(scraperStatus.platform == info.platform)
+            )
             status = session.exec(stmt).first()
             if status:
                 # Update existing record
