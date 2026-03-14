@@ -85,10 +85,11 @@ class GreenHouse(BaseScraper):
                 break
 
             for job in jobs:
+                department = job.get("department", {})
                 job_info = {
                     "title": job["title"],
                     "location": job["location"],
-                    "department": job.get("department", {}).get("name"),
+                    "department": department.get("name") if department else None,
                     "url": job["absolute_url"],
                     "jobdate": job["published_at"],
                 }
