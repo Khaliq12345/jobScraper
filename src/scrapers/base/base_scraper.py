@@ -1,3 +1,4 @@
+import unicodedata
 from abc import abstractmethod
 import httpx
 from src.storage.database import Database
@@ -199,6 +200,13 @@ class BaseScraper(Database):
         import unicodedata
 
         def clean_url(url: str) -> str:
+            url = (
+                url.strip()
+                .replace("\u200e", "")
+                .replace("\u200b", "")
+                .replace("\u200f", "")
+                .replace("\ufeff", "")
+            )
             # Remove invisible unicode characters
             cleaned = "".join(
                 c for c in url if not unicodedata.category(c).startswith("C")
@@ -206,6 +214,7 @@ class BaseScraper(Database):
             return cleaned.strip()
 
         self.link = clean_url(self.link)
+        self.link = self.link.replace("\u200e", "").strip()
         """Extract the position links"""
         pass
 
@@ -215,8 +224,21 @@ class BaseScraper(Database):
         print(f"POSITION - {position_link}")
         pass
 
+    def clean_url(self, url: str) -> str:
+        url = (
+            url.strip()
+            .replace("\u200e", "")
+            .replace("\u200b", "")
+            .replace("\u200f", "")
+            .replace("\ufeff", "")
+        )
+        # Remove invisible unicode characters
+        cleaned = "".join(c for c in url if not unicodedata.category(c).startswith("C"))
+        return cleaned.strip()
+
     def main(self) -> None:
         print(self.name)
+        self.link = self.clean_url(self.link)
         # self.delete_jobs_by_company(self.companyid)
         successful = 0
         failed = 0
