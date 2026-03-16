@@ -207,7 +207,7 @@ class BaseScraper(Database):
 
     def main(self) -> None:
         print(self.name)
-        self.delete_jobs_by_company(self.companyid)
+        # self.delete_jobs_by_company(self.companyid)
         successful = 0
         failed = 0
         idx = 0

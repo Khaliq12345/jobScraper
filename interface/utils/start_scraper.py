@@ -107,6 +107,8 @@ def run_scraper_task(
     is_test: bool,
     is_generic: bool,
 ):
+    db = Database()
+    db.delete_jobs_by_company(companyid)
     if is_generic:
         scraper = None
         match name:

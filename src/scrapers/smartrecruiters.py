@@ -37,7 +37,7 @@ class Smartrecruiters(BaseScraper):
             print(f"LINK = {link}")
             response = requests.get(link, timeout=60)
             soup = HTMLParser(response.text)
-            jobs = soup.css('li[class="opening-job job column wide-1of2 medium-1of2"]')
+            jobs = soup.css(".job")
             if len(jobs) == 0:
                 break
 
