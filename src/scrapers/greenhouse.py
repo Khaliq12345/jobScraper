@@ -68,6 +68,7 @@ class GreenHouse(BaseScraper):
         return None
 
     def get_positions(self) -> list[dict]:
+        print(self.link, self.link.strip())
         print(f"LINK = {self.link} - Name - {self.name}")
         all_jobs = []
         page = 1

@@ -196,6 +196,16 @@ class BaseScraper(Database):
 
     @abstractmethod
     def get_positions(self) -> list[str]:
+        import unicodedata
+
+        def clean_url(url: str) -> str:
+            # Remove invisible unicode characters
+            cleaned = "".join(
+                c for c in url if not unicodedata.category(c).startswith("C")
+            )
+            return cleaned.strip()
+
+        self.link = clean_url(self.link)
         """Extract the position links"""
         pass
 
