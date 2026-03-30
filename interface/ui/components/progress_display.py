@@ -22,6 +22,7 @@ class ProgressDisplay:
         self.container = None
         self.name = name
         self.page = 1
+        self.limit = 10
         self._render()
 
     def _render(self):
@@ -48,6 +49,13 @@ class ProgressDisplay:
                 .props("outlined dense")
                 .classes("w-40")
             )
+
+            ui.label("Limit").classes("text-sm font-medium ml-4")
+            ui.select(
+                [10, 20, 30, 40, 50, 100],
+                value=10,
+                on_change=lambda e: self._limit_changed(e.value),
+            ).props("outlined dense").classes("w-40")
             # Search by name
             ui.label("Search by name:").classes("text-sm font-medium ml-4")
             search_input = (
@@ -86,6 +94,12 @@ class ProgressDisplay:
         self.status_filter = new_filter
         self._update_display()
 
+    def _limit_changed(self, new_filter: int):
+        """Handle limit change"""
+        self.page = 1
+        self.limit = new_filter
+        self._update_display()
+
     def _search_changed(self, search_value: str):
         """Handle search query change"""
         self.page = 1
@@ -107,6 +121,7 @@ class ProgressDisplay:
             name=self.name,
             page=self.page,
             filter={"search": self.search_query, "status": self.status_filter},
+            limit=self.limit,
         )
 
         if not all_progress:

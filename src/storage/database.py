@@ -85,9 +85,13 @@ class Database:
                 raise ValueError(f"No record found for platform: {platform}")
 
     def get_all_process(
-        self, name: str | None = None, page: int = 1, filter: dict = {}
+        self,
+        name: str | None = None,
+        page: int = 1,
+        filter: dict = {},
+        all: bool = False,
+        limit: int = 10,
     ) -> list[scraperStatus]:
-        limit = 10
         offset = (page - 1) * limit
         search_name = filter.get("search")
         status = filter.get("status")
@@ -105,7 +109,7 @@ class Database:
             if (status) and (status != "all"):
                 stmt = stmt.where(scraperStatus.status == status)
 
-            stmt = stmt.offset(offset).limit(limit)
+            stmt = stmt if all else stmt.offset(offset).limit(limit)
             processes = session.exec(stmt).all()
             return list(processes)
 

@@ -27,7 +27,7 @@ def start_all_scraper(name: str, progress_filepath: str):
     so the UI process can poll it safely.
     """
     db = Database()
-    processes = db.get_all_process(name=name)
+    processes = db.get_all_process(name=name, all=True)
     total = len(processes)
 
     _write_progress(progress_filepath, 0, total, "Starting...")
