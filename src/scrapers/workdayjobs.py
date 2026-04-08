@@ -1,5 +1,6 @@
-from time import sleep, time_ns
-import requests
+from time import time_ns
+import asyncio
+import httpx
 from selectolax.parser import HTMLParser
 from src.scrapers.base.base_scraper import BaseScraper
 from urllib.parse import urlparse
@@ -15,6 +16,8 @@ headers = {
     "Sec-Fetch-Site": "same-origin",
     "Priority": "u=4",
 }
+
+MAX_CONCURRENT = 10  # Tune this based on rate limits
 
 
 class Workday(BaseScraper):
@@ -43,77 +46,101 @@ class Workday(BaseScraper):
         )
 
     def get_positions(self) -> list[str]:
+        return asyncio.run(self._get_positions_async())
+
+    async def _get_positions_async(self) -> list[str]:
         print(f"LINK = {self.link}")
-        jobs = []
-        offset = 0
         limit = 20
-        total = 0
 
-        while True:
-            print(f"OFFSET - {offset} | LIMIT - {limit}")
-            json_data = {
-                "appliedFacets": {},
-                "limit": limit,
-                "offset": offset,
-                "searchText": "",
-            }
-            response = requests.post(
-                f"{self.link}", timeout=60, headers=headers, json=json_data
-            )
-            json_data = response.json()
-            postings = json_data["jobPostings"]
+        # Fetch first page to get total
+        async with httpx.AsyncClient(headers=headers, timeout=60) as client:
+            first_page = await self._fetch_page(client, offset=0, limit=limit)
+            total = first_page["total"]
+            postings = first_page["jobPostings"]
+            print(f"TOTAL - {total}")
 
-            if total == 0:
-                total = json_data["total"]
+            jobs = self._extract_links(postings)
 
-            print(f"FETCHED JOBS - {len(postings)} | TOTAL - {total}")
+            if self.is_test or len(jobs) >= total:
+                return jobs
 
-            if not postings:
-                break
+            # Fetch remaining pages concurrently
+            offsets = range(limit, total, limit)
+            semaphore = asyncio.Semaphore(MAX_CONCURRENT)
 
-            for job in postings:
-                job_path = job.get("externalPath")
-                if not job_path:
-                    continue
-                job_link = f"{self.domain}{job_path}"
-                jobs.append(job_link)
+            async def fetch_with_sem(offset):
+                async with semaphore:
+                    page = await self._fetch_page(client, offset=offset, limit=limit)
+                    return self._extract_links(page["jobPostings"])
 
-            # Check if we've collected all jobs
-            if len(jobs) >= total:
-                break
+            results = await asyncio.gather(*[fetch_with_sem(o) for o in offsets])
+            for links in results:
+                jobs.extend(links)
 
-            if self.is_test:
-                break
-
-            offset += limit
-
+        print(f"TOTAL FETCHED - {len(jobs)}")
         return jobs
 
+    async def _fetch_page(
+        self, client: httpx.AsyncClient, offset: int, limit: int
+    ) -> dict:
+        print(f"OFFSET - {offset} | LIMIT - {limit}")
+        payload = {
+            "appliedFacets": {},
+            "limit": limit,
+            "offset": offset,
+            "searchText": "",
+        }
+        response = await client.post(self.link, json=payload)
+        return response.json()
+
+    def _extract_links(self, postings: list) -> list[str]:
+        links = []
+        for job in postings:
+            job_path = job.get("externalPath")
+            if job_path:
+                links.append(f"{self.domain}{job_path}")
+        return links
+
     def get_position_details(self, link: str) -> dict | None:
-        sleep(0.5)
-        response = requests.get(link, headers=headers, timeout=10)
-        json_data = response.json()
+        return asyncio.run(self._get_position_details_async(link))
+
+    async def _get_position_details_async(self, link: str) -> dict | None:
+        async with httpx.AsyncClient(headers=headers, timeout=10) as client:
+            response = await client.get(link)
+            json_data = response.json()
+
         job_info = json_data["jobPostingInfo"]
-        jobposition = job_info["title"]
-        jobdescription = HTMLParser(job_info["jobDescription"]).text(separator=" ")
-        jobpattern = job_info["timeType"]
         try:
             country = job_info["country"]["descriptor"]
-        except Exception as _:
+        except Exception:
             country = None
-        joblink = job_info["externalUrl"]
-        jobaddress = job_info["location"]
-        jobdate = job_info["postedOn"]
-        job_dict = {
+
+        return {
             "jobid": time_ns(),
             "companyid": self.companyid,
-            "jobposition": jobposition,
-            "jobdescription": jobdescription,
+            "jobposition": job_info["title"],
+            "jobdescription": HTMLParser(job_info["jobDescription"]).text(
+                separator=" "
+            ),
             "jobcountry": country,
-            "jobaddress": jobaddress,
-            "jobpattern": jobpattern,
-            "scrapedsource": joblink,
+            "jobaddress": job_info["location"],
+            "jobpattern": job_info["timeType"],
+            "scrapedsource": job_info["externalUrl"],
             "parse_location": True,
-            "jobdate": jobdate,
+            "jobdate": job_info["postedOn"],
         }
-        return job_dict
+
+    async def get_all_details_async(self, links: list[str]) -> list[dict]:
+        """Call this instead of looping get_position_details for bulk fetching."""
+        semaphore = asyncio.Semaphore(MAX_CONCURRENT)
+
+        async def fetch_with_sem(link):
+            async with semaphore:
+                return await self._get_position_details_async(link)
+
+        async with httpx.AsyncClient(headers=headers, timeout=10) as client:
+            results = await asyncio.gather(
+                *[fetch_with_sem(link) for link in links], return_exceptions=True
+            )
+
+        return [r for r in results if isinstance(r, dict)]
