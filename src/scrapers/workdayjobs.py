@@ -17,7 +17,7 @@ headers = {
     "Priority": "u=4",
 }
 
-MAX_CONCURRENT = 10  # Tune this based on rate limits
+MAX_CONCURRENT = 20  # Tune this based on rate limits
 
 
 class Workday(BaseScraper):
