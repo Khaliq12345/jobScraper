@@ -1,4 +1,3 @@
-import asyncio
 import unicodedata
 from abc import abstractmethod
 import httpx
@@ -7,6 +6,8 @@ from src.storage.model import jobs, scraperStatus
 from src.utils import static
 import re
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import threading
 
 
 class BaseScraper(Database):
@@ -237,98 +238,6 @@ class BaseScraper(Database):
         cleaned = "".join(c for c in url if not unicodedata.category(c).startswith("C"))
         return cleaned.strip()
 
-    def main(self) -> None:
-        print(self.name)
-        self.link = self.clean_url(self.link)
-        # self.delete_jobs_by_company(self.companyid)
-        successful = 0
-        failed = 0
-        idx = 0
-        status = "running"
-        total = 0
-
-        self._update_progress(
-            {
-                "site": self.name,
-                "total": total,
-                "current": 0,
-                "successful": 0,
-                "failed": 0,
-                "status": status,
-                "last_updated": datetime.now().isoformat(),
-            }
-        )
-
-        try:
-            positions = self.get_positions()
-            total = len(positions)
-            self._update_progress(
-                {
-                    "site": self.name,
-                    "total": total,
-                    "current": 0,
-                    "successful": 0,
-                    "failed": 0,
-                    "status": "running",
-                    "last_updated": datetime.now().isoformat(),
-                }
-            )
-
-            for idx, position in enumerate(positions, 1):
-                try:
-                    job_details = self.get_position_details(position)
-                    parsed_position = self.validate_data(job_details)
-
-                    if not parsed_position.jobposition:
-                        continue
-
-                    if self.save:
-                        job_data = parsed_position.model_dump(exclude={"jobid"})
-                        self.send_job(jobs(**job_data))
-                    successful += 1
-
-                except Exception as e:
-                    print(f"ERROR - {str(e)}")
-                    failed += 1
-
-                self._update_progress(
-                    {
-                        "site": self.name,
-                        "total": total,
-                        "current": idx,
-                        "successful": successful,
-                        "failed": failed,
-                        "status": "running",
-                        "last_updated": datetime.now().isoformat(),
-                    }
-                )
-
-            status = "completed"
-
-        except KeyboardInterrupt:
-            print("\n⚠️  Interrupted!")
-            status = "interrupted"
-            raise
-
-        except Exception as e:
-            print(f"\n❌ Fatal error: {str(e)}")
-            status = "failed"
-            raise
-
-        finally:
-            # ALWAYS saves progress, even if something crashes
-            self._update_progress(
-                {
-                    "site": self.name,
-                    "total": total,
-                    "current": idx,
-                    "successful": successful,
-                    "failed": failed,
-                    "status": status,
-                    "last_updated": datetime.now().isoformat(),
-                }
-            )
-
     def _update_progress(self, data: dict) -> None:
         """Update progress in database with current site's data"""
 
@@ -349,3 +258,109 @@ class BaseScraper(Database):
 
         # Update or insert in database
         self.update_status(status_info)
+
+    def main(self, max_workers: int = 50) -> None:
+        print(self.name)
+        self.link = self.clean_url(self.link)
+
+        successful = 0
+        failed = 0
+        idx = 0
+        status = "running"
+        total = 0
+
+        # Thread-safe counters
+        lock = threading.Lock()
+
+        self._update_progress(
+            {
+                "site": self.name,
+                "total": total,
+                "current": 0,
+                "successful": 0,
+                "failed": 0,
+                "status": status,
+                "last_updated": datetime.now().isoformat(),
+            }
+        )
+
+        def process_position(position):
+            """Process a single position and return (success: bool)"""
+            try:
+                job_details = self.get_position_details(position)
+                parsed_position = self.validate_data(job_details)
+                if not parsed_position.jobposition:
+                    return None  # Skip, don't count as success or failure
+                if self.save:
+                    job_data = parsed_position.model_dump(exclude={"jobid"})
+                    self.send_job(jobs(**job_data))
+                return True
+            except Exception as e:
+                print(f"ERROR - {str(e)}")
+                return False
+
+        try:
+            positions = self.get_positions()
+            total = len(positions)
+
+            self._update_progress(
+                {
+                    "site": self.name,
+                    "total": total,
+                    "current": 0,
+                    "successful": 0,
+                    "failed": 0,
+                    "status": "running",
+                    "last_updated": datetime.now().isoformat(),
+                }
+            )
+
+            with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = {
+                    executor.submit(process_position, pos): pos for pos in positions
+                }
+
+                for future in as_completed(futures):
+                    result = future.result()
+
+                    with lock:
+                        idx += 1
+                        if result is True:
+                            successful += 1
+                        elif result is False:
+                            failed += 1
+
+                        self._update_progress(
+                            {
+                                "site": self.name,
+                                "total": total,
+                                "current": idx,
+                                "successful": successful,
+                                "failed": failed,
+                                "status": "running",
+                                "last_updated": datetime.now().isoformat(),
+                            }
+                        )
+
+            status = "completed"
+
+        except KeyboardInterrupt:
+            print("\n⚠️  Interrupted!")
+            status = "interrupted"
+            raise
+        except Exception as e:
+            print(f"\n❌ Fatal error: {str(e)}")
+            status = "failed"
+            raise
+        finally:
+            self._update_progress(
+                {
+                    "site": self.name,
+                    "total": total,
+                    "current": idx,
+                    "successful": successful,
+                    "failed": failed,
+                    "status": status,
+                    "last_updated": datetime.now().isoformat(),
+                }
+            )
