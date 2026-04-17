@@ -103,7 +103,7 @@ class GreenHouse(BaseScraper):
         return all_jobs
 
     def get_position_details(self, job_info: dict) -> dict | None:
-        sleep(0.5)
+        sleep(5)
         url = job_info["url"]
         response = requests.get(
             url,
