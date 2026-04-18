@@ -2,6 +2,7 @@ from country_named_entity_recognition import find_countries
 from time import sleep, time_ns
 import requests
 from selectolax.parser import HTMLParser
+from config.config import PROXY_TOKEN
 from src.scrapers.base.base_scraper import BaseScraper
 from urllib.parse import urlparse
 import pycountry
@@ -75,7 +76,14 @@ class GreenHouse(BaseScraper):
         while True:
             print(f"Page - {page}")
             params = {"_data": "routes/$url_token", "page": f"{page}"}
-            response = requests.get(self.link, params=params)
+            proxyModeUrl = f"http://{PROXY_TOKEN}:@proxy.scrape.do:8080"
+            proxies = {
+                "http": proxyModeUrl,
+                "https": proxyModeUrl,
+            }
+            response = requests.get(
+                self.link, params=params, proxies=proxies, verify=False
+            )
             response.raise_for_status()
             json_data = response.json()
             job_post = json_data["jobPosts"]
@@ -105,10 +113,12 @@ class GreenHouse(BaseScraper):
     def get_position_details(self, job_info: dict) -> dict | None:
         sleep(5)
         url = job_info["url"]
-        response = requests.get(
-            url,
-            headers=headers,
-        )
+        proxyModeUrl = f"http://{PROXY_TOKEN}:@proxy.scrape.do:8080"
+        proxies = {
+            "http": proxyModeUrl,
+            "https": proxyModeUrl,
+        }
+        response = requests.get(url, headers=headers, proxies=proxies, verify=False)
         soup = HTMLParser(response.text)
         jobsalary = None
         salary_node = soup.css('div[class="pay-range"] p.body')
