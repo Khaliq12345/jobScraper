@@ -3,6 +3,7 @@ import requests
 from selectolax.parser import HTMLParser
 from src.scrapers.base.base_scraper import BaseScraper
 from urllib.parse import urlparse
+from config.config import PROXY_TOKEN
 
 headers = {
     "User-Agent": "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:146.0) Gecko/20100101 Firefox/146.0",
@@ -57,8 +58,19 @@ class Workday(BaseScraper):
                 "offset": offset,
                 "searchText": "",
             }
+
+            proxyModeUrl = f"http://{PROXY_TOKEN}:@proxy.scrape.do:8080"
+            proxies = {
+                "http": proxyModeUrl,
+                "https": proxyModeUrl,
+            }
             response = requests.post(
-                f"{self.link}", timeout=60, headers=headers, json=json_data
+                f"{self.link}",
+                timeout=60,
+                headers=headers,
+                json=json_data,
+                proxies=proxies,
+                verify=False,
             )
             json_data = response.json()
             postings = json_data["jobPostings"]
@@ -91,7 +103,14 @@ class Workday(BaseScraper):
 
     def get_position_details(self, link: str) -> dict | None:
         sleep(0.5)
-        response = requests.get(link, headers=headers, timeout=10)
+        proxyModeUrl = f"http://{PROXY_TOKEN}:@proxy.scrape.do:8080"
+        proxies = {
+            "http": proxyModeUrl,
+            "https": proxyModeUrl,
+        }
+        response = requests.get(
+            link, headers=headers, timeout=10, proxies=proxies, verify=False
+        )
         json_data = response.json()
         job_info = json_data["jobPostingInfo"]
         jobposition = job_info["title"]
