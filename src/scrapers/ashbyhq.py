@@ -4,6 +4,7 @@ import requests
 from selectolax.parser import HTMLParser
 from src.scrapers.base.base_scraper import BaseScraper
 from urllib.parse import urlparse
+from src.utils.find_county import get_country
 
 
 class Ashbyhq(BaseScraper):
@@ -132,12 +133,13 @@ class Ashbyhq(BaseScraper):
         country = None
         country_finder = find_countries(jobaddress)
         if not country_finder:
-            country = country if country else "United States"
+            country = get_country(jobaddress)
         else:
             country = country_finder[0][0].name
             if country in jobaddress:
                 country = country
 
+        print(country)
         job_dict = {
             "jobid": time_ns(),
             "companyid": self.companyid,

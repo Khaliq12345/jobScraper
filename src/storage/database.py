@@ -2,6 +2,7 @@ import sys
 
 sys.path.append(".")
 
+from sqlalchemy import URL
 from sqlmodel import Session, create_engine, delete, func, select
 from src.storage.model import jobs, scraperStatus, Users
 from config.config import DB_USER, DB_PASSWORD, DB_HOST, DB_DATABASE
@@ -9,10 +10,20 @@ from config.config import DB_USER, DB_PASSWORD, DB_HOST, DB_DATABASE
 
 class Database:
     def __init__(self) -> None:
-        self.engine = create_engine(
-            f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_DATABASE}"
-        )
+        # self.engine = create_engine(
+        #     f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_DATABASE}"
+        # )
+        # # print(f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}/{DB_DATABASE}")
         # self.engine2 = create_engine("sqlite:///scraper.db")
+        url = URL.create(
+            drivername="mysql+pymysql",
+            username=DB_USER,
+            password=DB_PASSWORD,
+            host=DB_HOST,
+            port=3306,
+            database=DB_DATABASE,
+        )
+        self.engine = create_engine(url)
         self.create_db_and_tables()
 
     def create_db_and_tables(self):

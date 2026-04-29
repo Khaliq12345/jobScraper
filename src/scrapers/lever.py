@@ -5,6 +5,7 @@ from src.scrapers.base.base_scraper import BaseScraper
 from urllib.parse import urlparse
 import json
 from country_named_entity_recognition import find_countries
+from src.utils.find_county import get_country
 
 
 class Lever(BaseScraper):
@@ -80,12 +81,13 @@ class Lever(BaseScraper):
         postal = address.get("postalCode")
         country_finder = find_countries(locality)
         if not country_finder:
-            country = country if country else "United States"
+            country = get_country(locality)
         else:
             country = country_finder[0][0].name
             if country in locality:
                 country = country
 
+        print(country)
         jobaddress = ", ".join(filter(None, [locality, region, postal]))
 
         job_dict = {
