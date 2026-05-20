@@ -82,7 +82,9 @@ class GreenHouse(BaseScraper):
                 "https": proxyModeUrl,
             }
             response = requests.get(
-                self.link, params=params, proxies=proxies, verify=False
+                f"{self.link}?page={page}&_data=routes%2F%24url_token",
+                # proxies=proxies,
+                # verify=False,
             )
             response.raise_for_status()
             json_data = response.json()

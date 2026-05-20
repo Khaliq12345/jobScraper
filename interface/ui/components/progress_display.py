@@ -161,7 +161,11 @@ class ProgressDisplay:
 
                 with ui.column():
                     ui.label("ID").classes("metric-label text-xs")
-                    ui.label(str(data.id)).classes("metric-value text-sm font-bold")
+                    ui.link(
+                        f"{data.id}",
+                        f"https://jobserver.ai/company?id={data.id}",
+                        new_tab=True,
+                    ).classes("metric-value text-sm font-bold")
 
             with ui.row().classes("w-full mb-4"):
                 with ui.column().classes("flex-1"):
