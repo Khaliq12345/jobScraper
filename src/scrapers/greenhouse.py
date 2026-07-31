@@ -76,16 +76,15 @@ class GreenHouse(BaseScraper):
         while True:
             print(f"Page - {page}")
             params = {"_data": "routes/$url_token", "page": f"{page}"}
-            proxyModeUrl = f"http://{PROXY_TOKEN}:@proxy.scrape.do:8080"
             proxies = {
-                "http": proxyModeUrl,
-                "https": proxyModeUrl,
+                "https": f"http://scraperapi:{PROXY_TOKEN}@proxy-server.scraperapi.com:8001"
             }
             response = requests.get(
                 f"{self.link}?page={page}&_data=routes%2F%24url_token",
                 proxies=proxies,
                 verify=False,
             )
+            print(response)
             response.raise_for_status()
             json_data = response.json()
             job_post = json_data["jobPosts"]
@@ -115,10 +114,8 @@ class GreenHouse(BaseScraper):
     def get_position_details(self, job_info: dict) -> dict | None:
         sleep(5)
         url = job_info["url"]
-        proxyModeUrl = f"http://{PROXY_TOKEN}:@proxy.scrape.do:8080"
         proxies = {
-            "http": proxyModeUrl,
-            "https": proxyModeUrl,
+            "https": f"http://scraperapi:{PROXY_TOKEN}@proxy-server.scraperapi.com:8001"
         }
         response = requests.get(url, headers=headers, proxies=proxies, verify=False)
         soup = HTMLParser(response.text)

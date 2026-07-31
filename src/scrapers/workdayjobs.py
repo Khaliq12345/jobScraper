@@ -59,10 +59,10 @@ class Workday(BaseScraper):
                 "searchText": "",
             }
 
-            proxyModeUrl = f"http://{PROXY_TOKEN}:@proxy.scrape.do:8080"
+            # proxyModeUrl = f"http://{PROXY_TOKEN}:@proxy.scrape.do:8080"
             proxies = {
-                "http": proxyModeUrl,
-                "https": proxyModeUrl,
+                # "http": proxyModeUrl,
+                "https": f"http://scraperapi:{PROXY_TOKEN}@proxy-server.scraperapi.com:8001"
             }
             response = requests.post(
                 f"{self.link}",
@@ -103,10 +103,8 @@ class Workday(BaseScraper):
 
     def get_position_details(self, link: str) -> dict | None:
         sleep(0.5)
-        proxyModeUrl = f"http://{PROXY_TOKEN}:@proxy.scrape.do:8080"
         proxies = {
-            "http": proxyModeUrl,
-            "https": proxyModeUrl,
+            "https": f"http://scraperapi:{PROXY_TOKEN}@proxy-server.scraperapi.com:8001"
         }
         response = requests.get(
             link, headers=headers, timeout=10, proxies=proxies, verify=False

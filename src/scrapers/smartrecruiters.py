@@ -58,8 +58,8 @@ class Smartrecruiters(BaseScraper):
     def get_position_details(self, job_link: str) -> dict | None:
         response = requests.get(job_link)
         soup = HTMLParser(response.text)
-        jobposition = soup.css_first('h1[class="job-title"]')
-        jobposition = jobposition.text() if jobposition else None
+        jobposition = soup.css_first('h1[itemprop="title"]')
+        jobposition = jobposition.text() if jobposition else ""
         jobpattern = soup.css_first('li[itemprop="employmentType"]')
         jobpattern = jobpattern.text() if jobpattern else None
         jobdescription = soup.css_first('section[id="st-jobDescription"]')
@@ -96,5 +96,4 @@ class Smartrecruiters(BaseScraper):
             "parse_location": True,
             "jobdate": jobdate,
         }
-        print(job_dict)
         return job_dict
